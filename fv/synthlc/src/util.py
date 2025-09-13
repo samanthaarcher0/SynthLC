@@ -5,12 +5,14 @@ from itertools import chain, combinations
 import re
 from HB_template import *
 
-GLBCLK=os.environ.get("CLK")
-if GLBCLK is None:
-    raise Exception("NOT FOUND ENV VAR: CLK")
-GLBTOPMOD=os.environ.get("TOPMOD")
-if GLBTOPMOD is None:
-    raise Exception("NOT FOUND ENV VAR: TOPMOD")
+# GLBCLK=os.environ.get("CLK")
+#GLBCLK = "fv_clk"
+#if GLBCLK is None:
+#    raise Exception("NOT FOUND ENV VAR: CLK")
+# GLBTOPMOD=os.environ.get("TOPMOD")
+#GLBTOPMOD = "loadstore"
+#if GLBTOPMOD is None:
+#    raise Exception("NOT FOUND ENV VAR: TOPMOD")
 
 
 mydtypes = {
@@ -116,14 +118,22 @@ def df_query(df, prop, cover_prop=True, exact_name=False):
 
 def get_result(ff, prop):
     if not os.path.exists(ff):
-        return ("ERR", float('inf'))
-    # return (result, time)
+        return ("ERR", float('inf'), 0)
+    # return (result, bound, time)
     csv_ = pd.read_csv(ff)
     r_ = csv_[csv_['Name'] == prop]
     if len(r_) != 1:
-        return ("ERR", float('inf'))
+        return ("ERR", float('inf'), float('inf'))
     else:
-        return (r_['Result'].values[0], float(r_['Time'].values[0][:-2]))
+        bound_str = str(r_['Bound'].values[0])
+        # Parse just the first integer from bound string
+        import re
+        bound_match = re.search(r'(\d+)', bound_str)
+        if bound_match:
+            bound = int(bound_match.group(1))
+        else:
+            bound = float('inf')  # If no integer found (e.g., "infinite")
+        return (r_['Result'].values[0], float(r_['Time'].values[0][:-2]), bound)
 
 
 def print_stat_arr(time_point):
@@ -179,3 +189,23 @@ def get_cyc_list_from_fname(fnm, exit_on_fail=True):
     print(perset_pl_cyc)
     return (over1cyc_pl, perset_pl_cyc)
 
+def get_combined_pls_dict(lines):
+    combined_pl_dict = dict()
+    pl_to_combined_name = dict()
+    curr_pl_name = None
+    curr_pl_set = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            if curr_pl_name and curr_pl_set:
+                combined_pl_dict[curr_pl_name] = curr_pl_set
+            curr_pl_name = None
+            curr_pl_set = []
+        else:
+            if curr_pl_name is None:
+                curr_pl_name = line
+            else:
+                curr_pl_set.append(line)
+    if curr_pl_name and curr_pl_set:
+        combined_pl_dict[curr_pl_name] = curr_pl_set
+    return combined_pl_dict
