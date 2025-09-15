@@ -6,43 +6,55 @@ from util import *
 if len(sys.argv) != 2:
     print("gen/pp")
     exit(0)
+
+
 HEADERFILE="../header.sv"
 OUTDIR="out"
 perflocs = get_perflocs(HEADERFILE)
+
+with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
+    combined_pls = f.readlines()
+combined_pl_dict = get_combined_pls_dict(combined_pls)
+
 print("perflocs: ", perflocs)
-h_ = ""
+
 with open(HEADERFILE, "r") as f:
+    lines = f.readlines()
+h_ = "".join(lines[:-5])
+t_ = "".join(lines[-5:])
+
+
+HEADERTCL='../header.tcl'
+htcl_ = ""
+with open(HEADERTCL, "r") as f:
     for line in f:
-        h_ += line
+        htcl_ += line
+
+JOB="rtl2mupath_instn_reachable_perf_loc"
 
 def gen():
-    if not os.path.isdir(OUTDIR):
-        os.mkdir(OUTDIR)
-    with open(OUTDIR+"/cover_individual.sv", "w") as f:
+
+    with open(f"{JOB}.tcl", "w") as f:
+        f.write(htcl_)
+        for idx, itm in enumerate(perflocs):
+            f.write("cover -name cvr_rtl2mupath_C_%s {(@(posedge %s%s) %s%s)}\n" % (idx, prefix, GLBCLK, prefix, itm))
+
+        f.write("set props [get_property_list -include {name cvr_rtl2mupath_C*}]\n")
+        f.write("prove -property $props\n")
+        f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)
+        f.write("save %s.db -force\n" % JOB)
+        f.write("file copy -force %s.csv %s\n" % (JOB, os.getcwd()))
+    #    f.write("exit\n")
+
+    with open(f"{JOB}.sv", "w") as f:
         f.write(h_)
-        for idx, itm in enumerate(perflocs):
-            f.write('''C_{CNT}: cover property (@(posedge {CLK}) {S});\n'''.format(CLK=GLBCLK, CNT=idx, S=itm))
+        f.write(t_)
 
-def gen_s2():
-    FILE = "cover_individual.csv"
-    plist = ["C_%d" % i for i in range(len(perflocs))]
-
-    if os.path.exists(FILE):
-        df = pd.read_csv(FILE, dtype=mydtypes)
-        t_ = 'assume property (@(posedge CLK) !{s});\n'.replace("CLK", GLBCLK)
-        for idx, itm in enumerate(perflocs):
-            res, _, _ = df_query(df, "C_%d" % idx)
-            if res == "covered":
-                with open(OUTDIR+"/%d.sv" % idx, "w") as f:
-                    f.write(h_)
-                    f.write(t_.format(s=itm))
-    else:
-        assert(0)
 
 def stats():
     print("====== stats ==============")
 
-    FILE = "cover_individual.csv"
+    FILE = f"{JOB}.csv"
     plist = ["C_%d" % i for i in range(len(perflocs))]
 
     comps = []
@@ -50,8 +62,8 @@ def stats():
     if os.path.exists(FILE):
         df = pd.read_csv(FILE, dtype=mydtypes)
         for itm in plist:
-            res, bnd, time = df_query(df, itm)
-            if res in ["covered", "unreachable", "cex", "proven"]:
+            res, bnd, time = df_query(df, itm, exact_name=True)
+            if res in ["covered", "unreachable", "cex", "proven", "bounded_proven_user"]:
                 comps.append(time)
             else:
                 incomps.append((time, bnd))
@@ -65,7 +77,7 @@ def stats():
         #print(FILE)
         res, bnd, time = df_query(df,":noConflict")
 
-        if res in ["covered", "unreachable", "cex", "proven"]:
+        if res in ["covered", "unreachable", "cex", "proven", "bounded_proven_user"]:
             comps.append(time)
         else:
             incomps.append((time, bnd))
@@ -87,27 +99,33 @@ def stats():
 
 def pp():
     print("====== pp ==============")
-    FILE="cover_individual.csv"
+    FILE = f"{JOB}.csv"
     cover_set = []
     undetermined = []
     if os.path.exists(FILE):
-        #print("individual covered:")
-        #plist = ["ariane.C_%d" % i for i in range(len(perflocs))]
-        TMPLT=GLBTOPMOD + ".C_%d"
-        #    "vscale_sim_top.C_%d"
+        TMPLT="cvr_rtl2mupath_C_%d"
         plist = [TMPLT % i for i in range(len(perflocs))]
         ret = get_results(FILE, plist)
         for itm, r in zip(perflocs, ret):
             if r[0] == "covered":
                 cover_set.append(itm)
-                #print(itm, r)
             if r[0] == "undetermined":
-                #print("undetermined....???? ", itm)
                 undetermined.append(itm)
 
-        with open("cover_individual.txt", "w") as f:
+        with open("cover_individual_all.txt", "w") as f:
             for itm in cover_set:
                 f.write(itm + "\n")
+    
+        with open("cover_individual.txt", "w") as f:
+            # write only PLs that are covered that are not in combined PLs
+            # if the combined_pl is covered, then it will be included itself
+            for itm in cover_set:
+                in_comb_pl = False
+                for comb_pl_name, pl_set in combined_pl_dict.items():
+                    if itm in pl_set:
+                        in_comb_pl = True
+                if not in_comb_pl:                
+                    f.write(itm + "\n")
 
         with open("undetermined.txt", "w") as f:
             for itm in undetermined:
@@ -117,10 +135,9 @@ def pp():
     always_set = []
     for idx, itm in enumerate(perflocs):
         FILE="%d.csv" % idx
-        r_, t_ = get_result(FILE, ":noConflict")
+        r_, t_, b_ = get_result(FILE, ":noConflict")
         if (r_ == "cex"):
             always_set.append(itm)
-        #print("{idx},{s},{r},{t}".format(idx=idx,s=itm,r=r_,t=t_))
     with open("always_reach.txt", "w") as f:
         for itm in always_set:
             f.write(itm + "\n")

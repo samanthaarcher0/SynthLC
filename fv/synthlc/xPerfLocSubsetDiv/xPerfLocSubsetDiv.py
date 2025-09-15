@@ -1,21 +1,51 @@
 import networkx as nx
 from itertools import chain, combinations
+from networkx.algorithms.community.label_propagation import asyn_lpa_communities
 import pandas as pd
 import numpy as np
+from pathlib import Path
 import os
 import pandas as pd
 import sys
+import re
 sys.path.append("../../src")
 from util import *
 from HB_template import *
+
+
+
 HEADERFILE="../header.sv"
-h_ = ""
 with open(HEADERFILE, "r") as f:
+    lines = f.readlines()
+h_ = "".join(lines[:-5])
+e_ = "".join(lines[-5:])
+
+
+HEADERTCL='../header.tcl'
+htcl_ = ""
+with open(HEADERTCL, "r") as f:
     for line in f:
-        h_ += line
+        htcl_ += line
+
+
+JOB="rtl2mupath_perfloc_subset"
+
 
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 always_ = get_array("../xCoverAPerflocDiv/always_reach.txt")
+
+with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
+    combined_pls = f.readlines()
+combined_pl_dict = get_combined_pls_dict(combined_pls)
+pl_to_comb = dict()
+for comb, pl_list in combined_pl_dict.items():
+    for pl in pl_list:
+        if pl_to_comb.get(pl) is not None:
+            assert(0)
+        else: 
+            pl_to_comb[pl] = comb
+print(f"combined PLs dict: {pl_to_comb}")
+
 
 ## Get iid map
 iid_map = {}        
@@ -26,15 +56,20 @@ with open("../../../xDUVPLs/perfloc_signals.txt", "r") as f:
         pl_signals[pl] = sigs.split(",")
 for k, v in pl_signals.items():
     iid_map[k] = v[0]
+for comb_pl, pl_list in combined_pl_dict.items():
+    iid_map[comb_pl] =  iid_map[pl_list[0]]
 
 for itm in cv_perflocs:
     h_ += hpn_reg_t2.format(s1=itm)
+
+
 exclu_pairs = get_array("../xPairwiseDepDiv/exclusive.txt")
 impli_pairs = get_array("../xPairwiseDepDiv/implication.txt")
 # 
-print("we treat undetermined as unreachable")
-exclu_pairs_incomp = get_array("../xPairwiseDepDiv/undetermined_excl.txt")
-impli_pairs_incomp = get_array("../xPairwiseDepDiv/undetermined_impl.txt")
+bound = 20
+print(f"we treat undetermined as unreachable if bound is greater than or equal {bound}")
+exclu_pairs_incomp = get_array("../xPairwiseDepDiv/undetermined_excl_over_bound.txt")
+impli_pairs_incomp = get_array("../xPairwiseDepDiv/undetermined_impl_over_bound.txt")
 
 implication_set_iids = get_array("../../xCommon/implication_iid.txt", exit_on_fail=False)
 cnt_reachable_pls_iid = {}
@@ -43,6 +78,8 @@ for itm in cv_perflocs:
     if not iid in cnt_reachable_pls_iid:
         cnt_reachable_pls_iid[iid] = 0
     cnt_reachable_pls_iid[iid] += 1 
+
+
 #print(cnt_reachable_pls_iid)
 indexmap = {}
 for idx, itm in enumerate(cv_perflocs):
@@ -63,6 +100,8 @@ class GenComb:
         global impli_pairs
         global impli_pairs_incomp
         global indexmap
+        # if idx == len(self.arr):
+        # print(idx, len(self.arr))
         if idx == len(self.arr):
             self.res.append(self.acc[::])
             return
@@ -78,7 +117,7 @@ class GenComb:
                         break
                 if not fail: 
                     for itm in exclu_pairs_incomp:
-                        u, v = itm
+                        u, v, bnd = itm
                         if (u in self.acc and v == self.elearr[idx]) or \
                                 (v in self.acc and u == self.elearr[idx]):
                             fail = True
@@ -90,6 +129,14 @@ class GenComb:
                         if v == self.elearr[idx] and (not u in self.acc and indexmap[u] < idx):
                             fail = True
                             break
+                if not fail:
+                    for itm in impli_pairs_incomp:
+                        # v implies u
+                        u, v, bnd = itm 
+                        if v == self.elearr[idx] and (not u in self.acc and indexmap[u] < idx):
+                            fail = True
+                            break
+
                 if not fail:
                     self.acc.append(self.elearr[idx])
                     self.get_all_combination(idx+1)
@@ -108,7 +155,7 @@ class GenComb:
                 if not fail:
                     for itm in impli_pairs_incomp:
                         # v implies u
-                        u, v = itm
+                        u, v, bnd = itm
                         if v in self.acc and u == self.elearr[idx]:
                             fail = True
                             break
@@ -116,97 +163,198 @@ class GenComb:
                     self.get_all_combination(idx+1)
 
 
+
 perflocs_map = {}
 for idx, v in enumerate(cv_perflocs):
     perflocs_map[idx] = v
 
-    
+
 def gen():
     if not os.path.isdir("covertest"):
         print("creating dir out")
         os.mkdir("covertest")
+
     print("========== gen ====================")
     combgen = GenComb(cv_perflocs)
     combgen.get_all_combination(0)
     print(len(combgen.res))
     outf = open("potential_subset.txt","w") 
+    tcl_out = f"{JOB}.tcl"
     cnt = 0
+    num_filtered = 0
+    num_pruned = 0
+    sv_out = f"{JOB}.sv"
+    with open (sv_out, "w") as f:
+        f.write(h_)
+        f.write(e_)
+
+    seen_sets = set()
+    seen_sets_list = list()
+    t_ = ""
     for idx, aSet in enumerate(combgen.res):
-        print(aSet)
-        if len(aSet) == 0:
+        len_set = len(aSet)
+        if len_set == 0:
             continue
         outf.write(",".join(aSet) + "\n")
-        ns_ = ""
-        s_ = ""
-        ors_ = ""
-        for loc in cv_perflocs:
-            if loc in aSet:
-                s_ += "{s1}_hpn & ".format(s1=loc)
-                ors_ += "{s1} | ".format(s1=loc)
-            else:
-                ns_ += "assume property (@(posedge clk_i) !{s1}); \n".format(s1=loc)
-        s_ += "1'b1"
-        ors_ += "1'b0"
-        t_ = "C_%d_N: cover property (@(posedge clk_i) %s & !(%s));" % (cnt, s_, ors_)
-        with open("covertest/coverset_%d.sv" % cnt, "w") as f:
-            f.write(h_)
-            f.write("\n")
-            f.write(ns_)
-            f.write(t_)
-
         cnt += 1
 
+        s_ = ""
+        ors_ = ""
+        ors_hpn = ""
+        added_comb_lrq_loc = False
+        for loc in cv_perflocs:
+            ors_ += "{prefix}{s1} | ".format(s1=loc, prefix=prefix)
+            if loc in aSet:
+                s_ += "{prefix}{s1}_hpn & ".format(s1=loc, prefix=prefix)
+            else:
+                ors_hpn += "{prefix}{s1}_hpn | ".format(s1=loc, prefix=prefix)
+
+
+        s_ += "1'b1"
+        ors_ += "1'b0"
+        ors_hpn += "1'b0"
+        t_ += "cover -name cvr_rtl2mupath_C_%d_N {(@(posedge %sfv_clk) %s & !(%s) & !(%s))} \n" % (idx, prefix, s_, ors_hpn, ors_)
     outf.close()
+ 
+    with open(tcl_out, "w") as f:
+        f.write(htcl_)
+        f.write("\n")
+        f.write(t_)
+        f.write("\n")
+        f.write("set props [get_property_list -include {name cvr_rtl2mupath_C_*}] \n")
+        f.write("prove -property $props \n")
+        f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)
+        f.write("save %s.db -force\n" % JOB)
+        f.write("file copy %s.csv %s/.\n" % (JOB, os.getcwd()))
+        #f.write("exit\n")
+  
+    print("num_pruned", num_pruned)
+    print("num_filtered", num_filtered)
+    print("total cnt", cnt)
 
 
 def pp():
     potential_subsets = get_array("potential_subset.txt", arr_as_ele = True)
-    
+    combgen = GenComb(cv_perflocs)
+    combgen.get_all_combination(0)
+ 
     print("========== gen ====================")
     print(len(potential_subsets))
     possible = []
     unreachable = []
     undetermined = []
-    idx = 0
-    for _, itm in enumerate(potential_subsets):
-        TMPLT=GLBTOPMOD + ".C_%d_N"
-        r_, t_ = get_result("./coverset_%d.csv" % idx, TMPLT % idx) #'ariane.C_%d' % idx)
-        print(r_, itm)
+    undetermined_under_bound = []
+    undetermined_over_bound = []
+    undetermined_no_file = []
+    
+    csv_files = [f"{JOB}.csv"]
+    print(f"Found {len(csv_files)} CSV files in results directory")
+    
+    # Process all CSV files and collect all unique property names
+    all_results = {}  # property_name -> (result, time, bound, source_file)
+    
+    for csv_file in csv_files:
+        print(f"Processing {csv_file}")
+        if not check_file(str(csv_file), exit_on_fail=False):
+            continue
+            
+        try:
+            df = pd.read_csv(csv_file, dtype=mydtypes)
+            
+            # Process each row in the CSV to extract all properties
+            for _, row in df.iterrows():
+                prop_name = row['Name']
+                result = row['Result']
+                
+                # Parse bound
+                bound_str = str(row['Bound'])
+                bound_match = re.search(r'(\d+)', bound_str)
+                bound_val = int(bound_match.group(1)) if bound_match else float('inf')
+                
+                # Ensure unique property names across all files
+                if prop_name in all_results:
+                    print(f"Warning: Property '{prop_name}' found in multiple files!")
+                    print(f"  Previous: {all_results[prop_name][3]}")
+                    print(f"  Current: {csv_file}")
+                
+                all_results[prop_name] = (result, bound_val, str(csv_file))
+                
+        except Exception as e:
+            print(f"Error processing {csv_file}: {e}")
+            continue
+    
+    print(f"Total unique properties found: {len(all_results)}")
+    
+    # Process potential subsets using the collected results
+    for idx, itm in enumerate(combgen.res):
+
+        if len(itm) == 0:
+            continue
+
+        TMPLT="cvr_rtl2mupath_C_%d_N"
+
+        result = all_results.get(TMPLT % idx)
+        if result is None:
+            undetermined_no_file.append(itm)
+            continue
+        r_, b_, source_file = result
+
+        print(f"Found result for subset {idx}: {result}")
+
+        # Categorize results
         if r_ == "covered":
             possible.append(itm)
         elif r_ == "unreachable":
             unreachable.append(itm)
         else:
-            undetermined.append(itm)
-        idx += 1
+            undetermined.append((itm, b_))
+            if b_ < bound:
+                undetermined_under_bound.append((itm, b_))    
+            else:
+                undetermined_over_bound.append((itm, b_))
+
     with open("reachable_set.txt", "w") as f:
         for itm in possible:
             f.write(",".join(itm) + "\n")
     with open("unreachable_set.txt", "w") as f:
         for itm in unreachable:
             f.write(",".join(itm) + "\n")
-      
+
     with open("undetermined_set.txt", "w") as f:
         for itm in undetermined:
+            f.write(",".join(itm[0]) + " " + str(itm[1]) + "\n")
+
+    with open("undetermined_under_bound.txt", "w") as f:
+        for itm in undetermined_under_bound:
+            f.write(",".join(itm[0]) + " " + str(itm[1]) + "\n")
+    
+    with open("undetermined_over_bound.txt", "w") as f:
+        for itm in undetermined_over_bound:
+            f.write(",".join(itm[0]) + " " + str(itm[1]) + "\n")
+    
+    with open("undetermined_no_file.txt", "w") as f:
+        for itm in undetermined_no_file:
             f.write(",".join(itm) + "\n")
 
     print("potential subsets %d" % len(potential_subsets))
     print("covered subsets %d" % len(possible))
-    print("undetermined subsets %d" % len(undetermined))
     print("unreachable subsets %d" % len(unreachable))
-
+    print("undetermined subsets %d" % len(undetermined))
+    print("undetermined subsets under bound %d" % len(undetermined_under_bound))
+    print("undetermined subsets over bound %d" % len(undetermined_over_bound))
+    print("undetermined subsets no file %d" % len(undetermined_no_file))
 
 def plset_cnt_iso():
     ######### isomorphic ###
-    isomorphic_sets = [
-    set(["lsq_enq_0_s1", "lsq_enq_1_s1"]), 
-    set(["scb_0_s12", "scb_1_s12", "scb_2_s12", "scb_3_s12"]), 
-    set(["scb_0_s13", "scb_1_s13", "scb_2_s13", "scb_3_s13"]),
-    set(["scb_0_s14", "scb_1_s14", "scb_2_s14", "scb_3_s14"]), 
-    set(["scb_0_s8", "scb_1_s8", "scb_2_s8", "scb_3_s8"]),
-    set(["stb_com_0_s1", "stb_com_1_s1"]),
-    set(["stb_spec_0_s1", "stb_spec_1_s1"]),
-    ]
+    # isomorphic_sets = [
+    # set(["lsq_enq_0_s1", "lsq_enq_1_s1"]), 
+    # set(["scb_0_s12", "scb_1_s12", "scb_2_s12", "scb_3_s12"]), 
+    # set(["scb_0_s13", "scb_1_s13", "scb_2_s13", "scb_3_s13"]),
+    # set(["scb_0_s14", "scb_1_s14", "scb_2_s14", "scb_3_s14"]), 
+    # set(["scb_0_s8", "scb_1_s8", "scb_2_s8", "scb_3_s8"]),
+    # set(["stb_com_0_s1", "stb_com_1_s1"]),
+    # set(["stb_spec_0_s1", "stb_spec_1_s1"]),
+    # ]
     #super_isomorphic_sets = [
     #set(["scb_0_s12", "scb_1_s12", "scb_2_s12", "scb_3_s12",
     #"scb_0_s13", "scb_1_s13", "scb_2_s13", "scb_3_s13",
@@ -215,6 +363,19 @@ def plset_cnt_iso():
     #set(["stb_com_0_s1", "stb_com_1_s1"]),
     #set(["stb_spec_0_s1", "stb_spec_1_s1"]),
     #]
+    isomorphic_sets = [
+        set(["lrq0_entry0_s0", "lrq0_entry1_s0", "lrq0_entry2_s0", "lrq0_entry3_s0"]),
+        set(["lrq0_entry0_s1", "lrq0_entry1_s1", "lrq0_entry2_s1", "lrq0_entry3_s1"]),
+        set(["lrq0_entry0_s2", "lrq0_entry1_s2", "lrq0_entry2_s2", "lrq0_entry3_s2"]),
+        set(["lrq0_entry0_s3", "lrq0_entry1_s3", "lrq0_entry2_s3", "lrq0_entry3_s3"]),
+        set(["lrq0_entry0_s4", "lrq0_entry1_s4", "lrq0_entry2_s4", "lrq0_entry3_s4"]),
+        set(["lrq0_entry0_s5", "lrq0_entry1_s5", "lrq0_entry2_s5", "lrq0_entry3_s5"]),
+        set(["lrq0_entry0_s6", "lrq0_entry1_s6", "lrq0_entry2_s6", "lrq0_entry3_s6"]),
+        set(["lrq0_entry0_s8", "lrq0_entry1_s8", "lrq0_entry2_s8", "lrq0_entry3_s8"]),
+        set(["lrq0_entry0_s9", "lrq0_entry1_s9", "lrq0_entry2_s9", "lrq0_entry3_s9"]),
+        set(["ls0_d6_s1", "ls0_d6_s2", "ls0_d6_s4", "ls0_d6_s8"]),
+    ]
+
     def larger_isomorhpic(a, b):
         # different index then already 
         if 'scb' in a and 'scb' in b:

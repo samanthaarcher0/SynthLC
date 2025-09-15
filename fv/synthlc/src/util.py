@@ -4,15 +4,23 @@ import os
 from itertools import chain, combinations
 import re
 from HB_template import *
+import json 
+import sys
+from pathlib import Path
 
-# GLBCLK=os.environ.get("CLK")
-#GLBCLK = "fv_clk"
-#if GLBCLK is None:
-#    raise Exception("NOT FOUND ENV VAR: CLK")
-# GLBTOPMOD=os.environ.get("TOPMOD")
-#GLBTOPMOD = "loadstore"
-#if GLBTOPMOD is None:
-#    raise Exception("NOT FOUND ENV VAR: TOPMOD")
+lib_file_path = Path(__file__).parent.resolve()
+print(lib_file_path)
+metadata_file = "../../../user_provided_files/metadata.json"
+
+metadata_file_path = os.path.join(lib_file_path, metadata_file)
+print(metadata_file_path)
+if not os.path.isfile(metadata_file_path):
+    print("can't find metadata file")
+    sys.exit(1)
+with open(metadata_file_path, 'r') as file:
+    metadata = json.load(file)
+GLBCLK=metadata.get("CLK")
+prefix=metadata.get("prefix")
 
 
 mydtypes = {

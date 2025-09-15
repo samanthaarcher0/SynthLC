@@ -15,9 +15,9 @@ if [ ! -f xDUVPLs/reachable_duvpls.sv ];
 then
     echo "Starting"
     # Get signal widths: 1. Generate get_sig_width.tcl
+    TCLFILE=${CWD}/xDUVPLs/rtl2mupath_get_sig_width.tcl
     cd xDUVPLs
     python3 gen.py get_width
-    TCLFILE=$(realpath rtl2mupath_get_sig_width.tcl)
     cp ${basic_header_tcl} ${TCLFILE}
     cat get_sig_width.tcl >> ${TCLFILE}
 
