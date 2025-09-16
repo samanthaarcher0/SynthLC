@@ -12,11 +12,23 @@ from util import *
 from HB_template import *
 from DOT_template import *
 from solver import *
-HEADERFILE="../header.sv"
-h_ = ""
+
+
+HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
+    lines = f.readlines()
+h_ = "".join(lines[:-5])
+e_ = "".join(lines[-5:])
+
+
+HEADERTCL='../header.tcl'
+htcl_ = ""
+with open(HEADERTCL, "r") as f:
     for line in f:
-        h_ += line
+        htcl_ += line
+
+JOB = "rtl2mupath_enter_order"
+
 class GenComb:
     def __init__(self, arr):
         self.arr = arr
@@ -40,7 +52,11 @@ is_interference_case = "III" in os.getcwd()
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
 
-pl_signals = {}
+with open("../../../../combined_pls.txt", "r") as f:
+    combined_pls = f.readlines()
+combined_pl_dict = get_combined_pls_dict(combined_pls)
+
+pl_signals = {} 
 with open("../../../xDUVPLs/perfloc_signals.txt", "r") as f:
     for line in f:
         pl, sigs = line[:-1].split(" : ")
@@ -48,52 +64,54 @@ with open("../../../xDUVPLs/perfloc_signals.txt", "r") as f:
 iid_map = {}
 for k, v in pl_signals.items():
     iid_map[k] = v[0]
+for comb_pl, pl_list in combined_pl_dict.items():
+    iid_map[comb_pl] =  iid_map[pl_list[0]]
 #print("TODO: for pair of nodes after transitive reduction we shoudl check if \
 #its possible to have two happen concurrently if not we should see if per PL set \
 #is always one way or the other")
 
-list_rows = [
-    "id_stage_s1",
-    "issue_s1",
-    "issue_s2",
-    "issue_s8",
-    "issue_s16",
-    "issue_s32",
-    "lsq_enq_0_s1",
-    "lsq_enq_1_s1",
-    "serdiv_unit_divide_s1",
-    "serdiv_unit_divide_s2",
-    "stb_spec_0_s1",
-    "stb_spec_1_s1",
-    "load_unit_s1",
-    "store_unit_s1",
-    "store_unit_s3",
-    "load_unit_buff_s1",
-    "csr_buffer_s1",
-    "mult_s1",
-    "scb_0_s12",
-    "scb_0_s13",
-    "scb_0_s14",
-    "scb_0_s8",
-    "scb_1_s12",
-    "scb_1_s13",
-    "scb_1_s14",
-    "scb_1_s8",
-    "scb_2_s12",
-    "scb_2_s13",
-    "scb_2_s14",
-    "scb_2_s8",
-    "scb_3_s12",
-    "scb_3_s13",
-    "scb_3_s14",
-    "scb_3_s8",
-    "stb_com_0_s1",
-    "stb_com_1_s1",
-    "load_unit_op_s1",
-    "load_unit_op_s2",
-    "load_unit_op_s3",
-    "mem_req_s1",
-]
+# list_rows = [
+#     "id_stage_s1",
+#     "issue_s1",
+#     "issue_s2",
+#     "issue_s8",
+#     "issue_s16",
+#     "issue_s32",
+#     "lsq_enq_0_s1",
+#     "lsq_enq_1_s1",
+#     "serdiv_unit_divide_s1",
+#     "serdiv_unit_divide_s2",
+#     "stb_spec_0_s1",
+#     "stb_spec_1_s1",
+#     "load_unit_s1",
+#     "store_unit_s1",
+#     "store_unit_s3",
+#     "load_unit_buff_s1",
+#     "csr_buffer_s1",
+#     "mult_s1",
+#     "scb_0_s12",
+#     "scb_0_s13",
+#     "scb_0_s14",
+#     "scb_0_s8",
+#     "scb_1_s12",
+#     "scb_1_s13",
+#     "scb_1_s14",
+#     "scb_1_s8",
+#     "scb_2_s12",
+#     "scb_2_s13",
+#     "scb_2_s14",
+#     "scb_2_s8",
+#     "scb_3_s12",
+#     "scb_3_s13",
+#     "scb_3_s14",
+#     "scb_3_s8",
+#     "stb_com_0_s1",
+#     "stb_com_1_s1",
+#     "load_unit_op_s1",
+#     "load_unit_op_s2",
+#     "load_unit_op_s3",
+#     "mem_req_s1",
+# ]
 
 enter_concurrent_pairs = get_array("../xHBPerfG_dfg_v3_div/aws_concurrent.txt", exit_on_fail=False)
 whb_edge = get_array("../xHBPerfG_dfg_v3_div/whb_proven.txt", exit_on_fail=False)
@@ -143,7 +161,7 @@ for itm in leaving_hb_proven_res:
     if itm[2] == "1":
         v += "___final"
     leaving_hb_proven_res_pairs.append((u, v))
-#print("leaving_hb_proven_res_pairs:", leaving_hb_proven_res_pairs)
+print("leaving_hb_proven_res_pairs:", leaving_hb_proven_res_pairs)
 aws_concur_leaving = get_array("../xHBPerfG_leaving/leaving_concur_proven.txt", exit_on_fail=False)
 aws_concur_leaving_pairs = []
 for itm in aws_concur_leaving:
@@ -154,9 +172,11 @@ for itm in aws_concur_leaving:
     if itm[2] == "1":
         v += "___final"
     aws_concur_leaving_pairs.append((u, v))
+print("aws_concur_leaving_pairs:", aws_concur_leaving_pairs)
+
 whb_leaving_res = get_array("../xHBPerfG_leaving/leaving_whb_proven.txt", exit_on_fail=False)
 
-undetermined_dfe = get_array("../xHBPerfG_dfg_v3_div/undetermined.txt") 
+undetermined_dfe = get_array("../xHBPerfG_dfg_v3_div/undetermined_under_bound.txt") 
 undetermined_whb = []
 undetermined_hb = []
 undetermined_concur = []
@@ -178,48 +198,72 @@ hb_cex_e = get_array("../xHBPerfG_dfg_v3_div/whb_todo.txt")
 intra_single_cyc = {}
 
 
-node_rows = {}
-label_s = ""
-row = 0
-for _, v in enumerate(list_rows):
-    node_rows[v] = row
-    label_s += label.format(nm=v,loc=row)
-    row += 1
-    if v in max_cyc_per_pl and max_cyc_per_pl[v] > 1:
-    #if v in over1cyc_pl:
-        label_s += label.format(nm = v + "___final", loc=row)
-        node_rows[v + "___final"] = row
-        row += 1
+# node_rows = {}
+# label_s = ""
+# row = 0
+# for _, v in enumerate(list_rows):
+#     node_rows[v] = row
+#     label_s += label.format(nm=v,loc=row)
+#     row += 1
+#     if v in max_cyc_per_pl and max_cyc_per_pl[v] > 1:
+#     #if v in over1cyc_pl:
+#         label_s += label.format(nm = v + "___final", loc=row)
+#         node_rows[v + "___final"] = row
+#         row += 1
 
 path_cnt = 0
 
+
+lrq0_nonzero_entry = ["lrq0_entry1_s0", "lrq0_entry1_s1", "lrq0_entry1_s2", "lrq0_entry1_s3", "lrq0_entry1_s4", "lrq0_entry1_s5", "lrq0_entry1_s6", "lrq0_entry1_s8", "lrq0_entry1_s9",
+                    "lrq0_entry2_s0", "lrq0_entry2_s1", "lrq0_entry2_s2", "lrq0_entry2_s3", "lrq0_entry2_s4", "lrq0_entry2_s5", "lrq0_entry2_s6", "lrq0_entry2_s8", "lrq0_entry2_s9",
+                    "lrq0_entry3_s0", "lrq0_entry3_s1", "lrq0_entry3_s2", "lrq0_entry3_s3", "lrq0_entry3_s4", "lrq0_entry3_s5", "lrq0_entry3_s6", "lrq0_entry3_s8", "lrq0_entry3_s9"]
+lrq0_entry0_wait_comb = ["lrq0_entry0_s2","lrq0_entry0_s3", "lrq0_entry0_s4", "lrq0_entry0_s5", "lrq0_entry0_s6", "lrq0_entry0_s8", "lrq0_entry0_s9"]
+
+for itm in cv_perflocs:
+    h_ += hpn_reg_t2.format(s1=itm)
+ors_ = ""
+for pl in lrq0_entry0_wait_comb:
+    ors_ += "{s1} || ".format(s1=pl)
+ors_ += "1'b0"
+h_ += hpn_reg_nm_t.format(nm = "lrq0_entry0_wait_comb", s1 = ors_)
+
+
+
 def gen():
+    global htcl_
     cnt_todo_cover = 0
     for set_idx, aSet in enumerate(reachable_sets):
         print("===== SET idx: %d ====" % set_idx)
+        print("Nodes: ", aSet)
         DG = nx.DiGraph()
+        #if set_idx != 133:
+        #    continue
 
+        print("\nAdding HB edges ... ")
         for e in hb_edge:
             if e[0] in aSet and e[1] in aSet:
                 DG.add_edge(e[0], e[1])
-
-
+                print((e[0], e[1]))
         # same iid leave order same as enter order
         implied_edges_same_iid = []
 
         edge_weight = {}
         iid_map_tmp = iid_map
+
+        print("\nRepeated nodes ...")
         for itm in aSet:
             DG.add_node(itm)
 
             # if perset_pl_cyc.get(set_idx) is None:
             if cyc_cnt_gt1_per_set.get(set_idx) is None:
+                print("no repeats")
                 continue
 
             ## at least one greater than 1 
             #cyc_cnt = [int(r) > 1 for r in cyc]
             #if sum(cyc_cnt) >= 1:
             if itm in cyc_cnt_gt1_per_set[set_idx]:
+                print(itm)
                 edge_weight[(itm, itm+"___final")] = \
                     [t for t in range(0, max_cyc_per_pl[itm])] #max #[int(r)-1 for r in cyc]
                 iid_map_tmp[itm+"___final"] = iid_map_tmp[itm]
@@ -231,7 +275,10 @@ def gen():
                         implied_edges_same_iid.append((itm + "___final", e[1]))
                     
                 DG.add_edge(itm, itm + "___final") 
-        
+                print("new_edge: ", (itm, itm + "___final"))
+
+        print("\n")
+        print(DG.edges) 
 
 
 
@@ -251,42 +298,138 @@ def gen():
 
 
         #print(hb_edge)
+        #print(DG.graph)
+        #print(DG.nodes)
+        #print(DG.edges)
+        print("\nimplied iid edges: ",implied_edges_same_iid)
         for e in implied_edges_same_iid:
             DG.add_edge(*e)
+            
 
+        #print(DG.graph)
+
+        print("\nleaving hb proven edges: ")
         for itm in leaving_hb_proven_res_pairs:
             if itm[0] in DG.nodes() and itm[1] in DG.nodes():
                 DG.add_edge(itm[0], itm[1])
+                print("new edge: ", (itm[0], itm[1]))
 
         #for itm in aws_concur_leaving_pairs:
         #    if itm[0] in DG.nodes() and itm[1] in DG.nodes():
+        #print(DG.graph)
+        #print(DG.nodes)
+        #print(DG.edges)
 
+        #print(f"enter concur {enter_concurrent_pairs}")
+        #print(f"aws concur {aws_concur_leaving_pairs}")
+        print("concurrent edges ... ")
         for e in enter_concurrent_pairs + aws_concur_leaving_pairs:
             a, b = e
             if not (a in DG.nodes() and b in DG.nodes()):
                 continue
-
+            print("\nedge: ", e)
+            #print(DG.edges)
+            #print("\n\n in edges 0")
+            try:
+                c = nx.find_cycle(DG)
+                print(f"1 Set {set_idx} error with transitive reduction. cycles:")
+                print(nx.find_cycle(DG))
+            except:
+                pass
+            
             in_edges = DG.in_edges(e[0])
+            #print("\n\nin edges: ", in_edges)
+            print("all edges: ", DG.edges())
+            print("\n\n")
             for e_prime in in_edges:
                 assert(e_prime[1] == e[0])
+                num_edges1 = len(DG.edges)
                 DG.add_edge(e_prime[0], e[1])
+                num_edges2 = len(DG.edges)
+                if num_edges2 != num_edges1:            
+                    #print(e)
+                    #print(e_prime)
+                    print(f"Adding edge: {e} is concurrent + HB edge {e_prime} implies {(e_prime[0], e[1])}")
+                if (e_prime[0] == e[1]):
+                    print(f"Looking at in edges to {e[0]}: {in_edges}")
+                    assert(0)
+
+            #print(DG.edges)
+            #print("\n\n in edges 1")
+
+            try:
+                c = nx.f3nd_cycle(DG)
+                print(f"0 Set {set_idx} error with transitive reduction. cycles:")
+                print(nx.find_cycle(DG))
+            except:
+                pass
+
 
             in_edges = DG.in_edges(e[1])
             for e_prime in in_edges:
                 assert(e_prime[1] == e[1])
+                n1 = len(DG.edges)
                 DG.add_edge(e_prime[0], e[0])
+                n2 = len(DG.edges)
+                if n2 != n1:
+                    print(f"Adding edge: {e} is concurrent + HB edge {e_prime} implies {(e_prime[0], e[0])}")
+                if e_prime[0] == e[0]:
+                    print(f"Looking at in edges to {e[1]}: {in_edges}")
+                    assert(0)
+
+
+            #print(DG.edges)
+            #print("\n\n out edges 0")
+            try:
+                c = nx.find_cycle(DG)
+                print(f"4 Set {set_idx} error with transitive reduction. cycles:")
+                print(nx.find_cycle(DG))
+            except:
+                pass
 
             out_edges = DG.out_edges(e[0])
             for e_prime in out_edges:
                 assert(e_prime[0] == e[0])
+                n1 = len(DG.edges)
                 DG.add_edge(e[1], e_prime[1])
+                n2 = len(DG.edges)
+                if n2 != n1:
+                    print(f"Adding edge: {e} is concurrent + HB edge {e_prime} implies {(e[1], e_prime[1])}")
+                if e_prime[1] == e[1]:
+                    print(f"Looking at out edges from {e[0]}: {out_edges}")
+                    assert(0)
+
+
+            #print(DG.edges)
+            #print("\n\n out edges 1")
+
 
             out_edges = DG.out_edges(e[1])
             for e_prime in out_edges:
                 assert(e_prime[0] == e[1])
+                n1 = len(DG.edges)
                 DG.add_edge(e[0], e_prime[1])
+                n2 = len(DG.edges)
+                if n2 != n1:
+                    print(f"Adding edge: {e} is concurrent + HB edge {e_prime} implies {(e[0], e_prime[1])}")
+                if e_prime[1] == e[0]:
+                    print(f"Looking at out edges from {e[1]}: {out_edges}")
+                    assert(0)
 
-        TR = nx.transitive_reduction(DG) #, reflexive=False)
+
+
+            #print(DG.edges)
+
+        print("\nFinal edges ... ")
+        print(DG.edges)
+
+
+        try: 
+            TR = nx.transitive_reduction(DG) #, reflexive=False)
+        except:
+            print(f"Set {set_idx} error with transitive reduction. cycles:")
+            print(nx.find_cycle(DG))
+            sys.exit(0)
         TC = nx.transitive_closure(DG, reflexive=False)
         reduce_e = list(TR.edges)
 
@@ -372,34 +515,55 @@ def gen():
             for k, v in pairs_todo.items():  
                 f.write("%s,%s:%s\n" % (k[0], k[1], ",".join(v)))  
 
-        if not os.path.isdir("out_complete"):
-            os.mkdir("out_complete")
+        # if not os.path.isdir("out_complete"):
+        #     os.mkdir("out_complete")
         
         if cnt_setidx != 0:
-            os.system("cp ./prove_from.tcl out_complete/com_%d.tcl" % set_idx)
-            with open("out_complete/com_%d.sv" % set_idx, "w") as f:
-                f.write(h_)
-                s = ""
-                for pl in cv_perflocs:
-                    if not pl in aSet:
-                        f.write(no_s1_t.format(s1=pl))
+            # os.system("cp ./prove_from.tcl out_complete/com_%d.tcl" % set_idx)
+            # with open("out_complete/com_%d.sv" % set_idx, "w") as f:
+            #     f.write(h_)
+            s = ""
+            ns = ""
+            all = ""
+            for pl in cv_perflocs:
+                all += "{prefix}{s1} || ".format(s1=pl, prefix=prefix)
+                if not pl in aSet:
+                    # f.write(no_s1_t.format(s1=pl))
+                    ns += "{prefix}{s1}_hpn || ".format(s1=pl, prefix=prefix)
+                else:
+                    # f.write(hpn_reg_t2.format(s1=pl))
+                    s += "{prefix}{s1}_hpn && ".format(s1=pl, prefix=prefix)
+            s += "1'b1 "
+            ns += "1'b0 "
+            all += "1'b0 "
+            set = s + " & !(%s)" % ns + " & !(%s)" % all
+            for k, v in pairs_todo_pruned.items():
+                for tt in v:
+                    if ">" == tt:
+                        # f.write(C_hb_prop.format(e0=k[0], e1=k[1]))
+                        htcl_ += C_hb_prop_tcl.format(idx=set_idx, e0=k[0], e1=k[1], set=set, prefix=prefix)
+                    elif "<" == tt:
+                        # f.write(C_hb_prop.format(e0=k[1], e1=k[0]))
+                        htcl_ += C_hb_prop_tcl.format(idx=set_idx, e0=k[1], e1=k[0], set=set, prefix=prefix)
                     else:
-                        f.write(hpn_reg_t2.format(s1=pl))
-                        s += "{s1}_hpn && ".format(s1=pl)
-                s += "1'b1 "
-                f.write("wire set_r = %s;\n" % s)
-                for k, v in pairs_todo_pruned.items():
-                    for tt in v:
-                        if ">" == tt:
-                            f.write(C_hb_prop.format(e0=k[0], e1=k[1]))
-                        elif "<" == tt:
-                            f.write(C_hb_prop.format(e0=k[1], e1=k[0]))
-                        else:
-                            f.write(C_concur_prop.format(e0=k[1], e1=k[0]))
+                        # f.write(C_concur_prop.format(e0=k[1], e1=k[0]))
+                        htcl_ += C_concur_prop_tcl.format(idx=set_idx, e0=k[1], e1=k[0], set=set, prefix=prefix)
 
+            print(1)
+        print(2)
+    print(3)
 
-
-
+    with open (f"{JOB}.tcl", "w") as f:
+        f.write(htcl_)
+        f.write("set props [get_property_list -include {name cvr_rtl2mupath_*}]\n")
+        f.write("prove -property $props\n")
+        f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)
+        f.write("save %s.db -force\n" % JOB)
+        f.write("file copy %s.csv %s/.\n" % (JOB, os.getcwd()))
+        #f.write("exit\n")
+    with open (f"{JOB}.sv", "w") as f:
+        f.write(h_)
+        f.write(e_)
 
 
 

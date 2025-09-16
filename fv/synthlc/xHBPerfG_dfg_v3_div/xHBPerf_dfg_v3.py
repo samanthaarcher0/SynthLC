@@ -62,7 +62,7 @@ def gen():
         # unfortunately previous bug and to avoid re-evaluate stuffs
         if in_aset: #and e in yosys_edge: 
             with open (tcl_out, "a") as f:
-                f.write(ENTER_A_HP_ENTER_B_t1_nvda_tcl.format(s1 = e0, s2 = e1, cnt = idx, prefix=prefix))
+                f.write(ENTER_A_HP_ENTER_B_t1_tcl.format(s1 = e0, s2 = e1, cnt = idx, prefix=prefix))
         else:
             print("not in reachable_sets: ", e)
     with open (tcl_out, "a") as f:
@@ -105,7 +105,7 @@ def gen_s2():
         if r_ == "cex":
             print("CHECK FOR WHB for ", e)
             with open (tcl_out, "a") as f:
-                f.write(ENTER_A_HP_ENTER_B_t2_nvda_tcl.format(s1 = e0, s2 = e1, cnt = idx, prefix=prefix))
+                f.write(ENTER_A_HP_ENTER_B_t2_tcl.format(s1 = e0, s2 = e1, cnt = idx, prefix=prefix))
             whb.append(e)
         elif r_ == "undetermined":
             print("undetermined?", e[0], e[1])

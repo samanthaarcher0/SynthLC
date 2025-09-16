@@ -57,22 +57,22 @@ C_final_concur_final = '''
 CS_{e0nm}_concur_{e1nm}: cover property (@(posedge fv_clk) ({e0} & {e1}) ##1 !({e0} | {e1}) ##[0:$] set_r);
 '''
 
-C_final_hb_enter_nvda_tcl = '''
+C_final_hb_enter_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_hb_{e1nm} {{(@(posedge fv_clk) {e0} ##1 (!{e0} & !{e1}_hpn) ##[0:$] {set} && {asums})}};
 '''
-C_final_concur_enter_nvda_tcl = '''
+C_final_concur_enter_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_concur_{e1nm} {{(@(posedge fv_clk) ({e0} & {e1} & !{e1}_hpn) ##1 (!{e0}) ##[0:$] {set} && {asums})}};
 '''
-C_enter_hb_final_nvda_tcl = '''
+C_enter_hb_final_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_hb_{e1nm} {{(@(posedge fv_clk) !{e0} ##1 ({e0} & ((!{e1}_hpn) | {e1})) ##[1:$] {e1} ##[0:$] {set} && {asums})}};
 '''
-C_enter_concur_final_nvda_tcl = '''
+C_enter_concur_final_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_concur_{e1nm} {{(@(posedge fv_clk) ({e0} & !{e0}_hpn & {e1}) ##1 (!{e1}) ##[0:$] {set} && {asums})}};
 '''
-C_final_hb_final_nvda_tcl = '''
+C_final_hb_final_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_hb_{e1nm} {{(@(posedge fv_clk) {e0} ##1 (!{e0} & ((!{e1}_hpn) | {e1})) ##[0:$] {set} && {asums})}};
 '''
-C_final_concur_final_nvda_tcl = '''
+C_final_concur_final_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_concur_{e1nm} {{(@(posedge fv_clk) ({e0} & {e1}) ##1 !({e0} | {e1}) ##[0:$] {set} && {asums})}};
 '''
 
@@ -84,10 +84,10 @@ CS_{e0}_concur_{e1}: cover property (@(posedge fv_clk) ({e0} & !{e0}_hpn & {e1} 
 '''
 
 
-C_hb_prop_nvda_tcl = '''
+C_hb_prop_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0}_hb_{e1} {{(@(posedge {prefix}fv_clk) ({prefix}{e0} & !{prefix}{e0}_hpn & !({prefix}{e1}_hpn | {prefix}{e1})) ##[0:$] {set})}};
 '''
-C_concur_prop_nvda_tcl = '''
+C_concur_prop_tcl = '''
 cover -name cvr_rtl2mupath_CS_{idx}_{e0}_concur_{e1} {{(@(posedge {prefix}fv_clk) ({prefix}{e0} & !{prefix}{e0}_hpn & {prefix}{e1} & !{prefix}{e1}_hpn) ##[0:$] {set})}};
 '''
 
@@ -284,11 +284,11 @@ WHB_{cnt}: assert property (@(posedge fv_clk) ({s1} && !{s1}_hpn) |-> !{s2}_hpn)
 WHB_CONCUR_{cnt}: assert property (@(posedge fv_clk) ({s1} && !{s1}_hpn) |-> ({s2} && !{s2}_hpn));
 `endif 
 '''
-ENTER_A_HP_ENTER_B_t1_nvda_tcl = '''
+ENTER_A_HP_ENTER_B_t1_tcl = '''
 assert -name asrt_rtl2mupath_HB_{cnt} {{(@(posedge {prefix}fv_clk) ({prefix}{s1} && !{prefix}{s1}_hpn) |-> !({prefix}{s2}_hpn || {prefix}{s2}))}};
 '''
 
-ENTER_A_HP_ENTER_B_t2_nvda_tcl = '''
+ENTER_A_HP_ENTER_B_t2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_{cnt} {{(@(posedge {prefix}fv_clk) ({prefix}{s1} && !{prefix}{s1}_hpn) |-> !{prefix}{s2}_hpn)}};
 assert -name asrt_rtl2mupath_WHB_CONCUR_{cnt} {{(@(posedge {prefix}fv_clk) ({prefix}{s1} && !{prefix}{s1}_hpn) |-> ({prefix}{s2} && !{prefix}{s2}_hpn))}};
 '''
@@ -335,19 +335,19 @@ WHB_CONCUR_LEAVING_{s1}_hb_{s2}: assert property (@(posedge fv_clk)
 `endif 
 '''
 
-HB_leaving_s1_hb_s2_nvda_tcl = '''
+HB_leaving_s1_hb_s2_tcl = '''
 assert -name asrt_rtl2mupath_HB_LEAVING_{s1}_{s2} {{(@(posedge {prefix}fv_clk) 
     ($past({prefix}{s1}, 2) && $past({prefix}{s1}) && !{prefix}{s1}) |-> 
     $past(!({prefix}{s2}_hpn || {prefix}{s2})))}};
 '''
 
-HB_leaving_s1_whb_s2_nvda_tcl = '''
+HB_leaving_s1_whb_s2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_LEAVING_{s1}_hb_{s2} {{(@(posedge {prefix}fv_clk) 
     ($past({prefix}{s1}, 2) && $past({prefix}{s1}) && !{prefix}{s1}) |-> 
     $past(!({prefix}{s2}_hpn)))}};
 '''
 
-HB_leaving_s1_whb_concur_s2_nvda_tcl = '''
+HB_leaving_s1_whb_concur_s2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_CONCUR_LEAVING_{s1}_hb_{s2} {{(@(posedge {prefix}fv_clk) 
     ($past({prefix}{s1}, 2) && $past({prefix}{s1}) && !{prefix}{s1}) |-> 
     $past(!({prefix}{s2}_hpn) && {prefix}{s2}))}};
@@ -386,20 +386,20 @@ WHB_CONCUR_{s1}_LEAVING_{s2}: assert property (@(posedge fv_clk)
 # CONCUR: $past(!s1_hpn && s1) |-> $past(s2,2) && $past(s2) && !s2)
 
 
-HB_s1_hb_leaving_s2_nvda_tcl = '''
+HB_s1_hb_leaving_s2_tcl = '''
 assert -name asrt_rtl2mupath_HB_{s1}_LEAVING_{s2} {{(@(posedge {prefix}fv_clk) 
     ({asum} && $past(!{prefix}{s1}_hpn && {prefix}{s1})) |-> 
     ((!{prefix}{s2}_hpn) || ($past({prefix}{s2}) && {prefix}{s2})))}};
 '''
 
-HB_s1_whb_leaving_s2_nvda_tcl = '''
+HB_s1_whb_leaving_s2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_{s1}_LEAVING_{s2} {{(@(posedge {prefix}fv_clk) 
     ({asum} && $past(!{prefix}{s1}_hpn && {prefix}{s1})) |-> 
     ((!{prefix}{s2}_hpn) || $past({prefix}{s2})))}};
 '''
 
 
-HB_s1_whb_concur_leaving_s2_nvda_tcl = '''
+HB_s1_whb_concur_leaving_s2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_CONCUR_{s1}_LEAVING_{s2} {{(@(posedge {prefix}fv_clk) 
     ({asum} && $past(!{prefix}{s1}_hpn && {prefix}{s1})) |-> 
     $past({prefix}{s2},2) && ($past({prefix}{s2}) && !{prefix}{s2}))}};
@@ -431,19 +431,19 @@ WHB_CONCUR_LEAVING_{s1}_LEAVING_{s2}: assert property (@(posedge fv_clk)
 `endif 
 '''
 
-HB_leaving_s1_hb_leaving_s2_nvda_tcl = '''
+HB_leaving_s1_hb_leaving_s2_tcl = '''
 assert -name asrt_rtl2mupath_HB_LEAVING_{s1}_LEAVING_{s2} {{(@(posedge {prefix}fv_clk) 
     ({asum} && $past({prefix}{s1}, 2) && $past({prefix}{s1}) && !{prefix}{s1}) |-> 
     (({prefix}{s2}_hpn && {prefix}{s2}) || !{prefix}{s2}_hpn))}};
 '''
 
-HB_leaving_s1_whb_leaving_s2_nvda_tcl = '''
+HB_leaving_s1_whb_leaving_s2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_LEAVING_{s1}_LEAVING_{s2} {{(@(posedge {prefix}fv_clk) 
     ({asum} && $past({prefix}{s1}, 2) && $past({prefix}{s1}) && !{prefix}{s1}) |-> 
     $past(({prefix}{s2}_hpn && {prefix}{s2}) || !{prefix}{s2}_hpn))}};
 '''
 
-HB_leaving_s1_whb_concur_leaving_s2_nvda_tcl = '''
+HB_leaving_s1_whb_concur_leaving_s2_tcl = '''
 assert -name asrt_rtl2mupath_WHB_CONCUR_LEAVING_{s1}_LEAVING_{s2} {{(@(posedge {prefix}fv_clk) 
     ({asum} && $past({prefix}{s1}, 2) && $past({prefix}{s1}) && !{prefix}{s1}) |-> 
     ($past({prefix}{s2}, 2) && $past({prefix}{s2}) && !{prefix}{s2}))}};
