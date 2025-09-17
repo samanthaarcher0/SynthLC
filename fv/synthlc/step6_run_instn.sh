@@ -71,8 +71,8 @@ PYSCRPT=xHBPerfG_leaving
 if [ -d "${DIR}" ]; then 
     echo "Directory exists ${DIR} and skip"
 
-else 
-    cp -r ../${DIR} .
+#else 
+    #cp -r ../${DIR} .
 
   
     JOB1=rtl2mupath_revisit_hb_leaving1
@@ -83,12 +83,12 @@ else
     SVFILE2=$(realpath ${DIR})/${JOB2}.sv
 
     # Generate properties to determine HB edges for the last visit of a repeated PL
-    cd ${DIR}; 
-    python3 ${PYSCRPT}.py gen; 
+    #cd ${DIR}; 
+    #python3 ${PYSCRPT}.py gen; 
 
     # Run Jasper to get HB edges for the last cycle of a repeated PL
-    cd ../../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE1} ${SVFILE1}
+    #cd ../../..
+    #./run.sh ${FV_UNITDIR} ${TCLFILE1} ${SVFILE1}
 
     # Generate properties for WHB and concurrent relationships between a PL and a final visit to a repeated node
     cd ${INAME_DIR}/${DIR};
@@ -96,7 +96,7 @@ else
 
     # Run Jasper to get WHB and CONCUR relations for counterexamples found in step 1
     cd ../../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE1} ${SVFILE1}
+    ./run.sh ${FV_UNITDIR} ${TCLFILE2} ${SVFILE2}
 
 fi
 
