@@ -202,7 +202,7 @@ def gen_duv_pl_checks():
             #pattern = r"^lrq.*_entry.*_(s15|s31)$" 
             #if re.match(pattern, itm):
             #    continue
-            out_tcl.write("vif_cover -name rtl2mupath_CHECK_%s -expr {fv_nvcpu_loadstore_rtl2mupath.%s}\n" % (itm, itm))
+            out_tcl.write("cover -name cvr_rtl2mupath_CHECK_%s {%s.%s}\n" % (itm, prefix, itm))
         out_tcl.write("set props [get_property_list -include {name *rtl2mupath_CHECK*}]\n")
         out_tcl.write("prove -property $props\n")
         out_tcl.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)

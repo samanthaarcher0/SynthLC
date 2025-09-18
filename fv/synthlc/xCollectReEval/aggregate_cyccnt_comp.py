@@ -52,7 +52,7 @@ is_interference_case = "III" in os.getcwd()
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
 
-with open("../../../../combined_pls.txt", "r") as f:
+with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
     combined_pls = f.readlines()
 combined_pl_dict = get_combined_pls_dict(combined_pls)
 
