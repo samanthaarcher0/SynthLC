@@ -40,6 +40,7 @@ is_interference_case = "III" in os.getcwd()
 
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
+edge = get_array("../xCoverCandidateHBEdges/covered_edges.txt")
 
 pl_signals = {}
 with open("../../../xDUVPLs/perfloc_signals.txt", "r") as f:

@@ -35,6 +35,7 @@ for itm in cv_perflocs:
 
 JOB1="rtl2mupath_pl_revisit_possible"
 JOB2="rtl2mupath_pl_subset_revisit_possible"
+JOB3="rtl2mupath_pl_subset_combination_check"
 
 def gen():
 
@@ -114,6 +115,7 @@ def gen_s2():
     seen_wait_comb = False
     t_ = ""
     CVR_TMPLT = '''cover -name cvr_rtl2mupath_over1cyc_{idx}_{itm_nm} {{(@(posedge {prefix}fv_clk) ({itm}) [*2] ##[0:$] ({path})) }}\n'''
+    CVR_TMPLT2 = '''cover -name cvr_rtl2mupath_only1cyc_{idx}_{itm_nm} {{(@(posedge {prefix}fv_clk) (!{itm}) ##1 ({itm}) ##1 (!{itm}) ##[0:$] ({path})) }}\n'''
     max_cyc_perloc = list()
     for itm in cv_perflocs:
         print(itm)
@@ -152,6 +154,7 @@ def gen_s2():
             #    t_ += CVR_TMPLT.format(idx=set_idx, itm_nm="lrq0_entry0_wait_comb", itm=lrq0_entry0_wait_comb_hpn, path=path)
             #else: 
             t_ += CVR_TMPLT.format(idx=set_idx, itm_nm=itm, itm=("%s%s" % (prefix, itm)), path=path, prefix=prefix)
+            t_ += CVR_TMPLT2.format(idx=set_idx, itm_nm=itm, itm=("%s%s" % (prefix, itm)), path=path, prefix=prefix)
             t_ += "\n"
 
     with open(f"{JOB2}.sv", "w") as f:
@@ -174,13 +177,170 @@ def gen_s2():
             f.write("%s,%d\n" % (itm[0], itm[1]))
     return
 
+
+def gen_s3():
+    global h_
+
+    max_cyc_perloc = get_array("max_cycle_per_pl.txt")
+    pl_cyc = {}
+    for itm in max_cyc_perloc:
+        pl_cyc[itm[0]] = int(itm[1])
+
+    result_over_1_covered = [] # (itm,cyc_that_covered,...)
+    result_only_1_covered = []
+    sets_without_repeated = []
+    undetermined_result = []
+    # itm, cyc, res
+    fnm = os.getcwd() + "/%s.csv" % JOB2
+    check_file(fnm)
+    seen_wait_comb = False
+    df = pd.read_csv(fnm, dtype=mydtypes)
+
+    reachable_sets_new = dict()
+    cv_perflocs_with_final = list()
+
+    for itm in cv_perflocs:
+        cv_perflocs_with_final.append(itm)
+        TMPLT="cvr_rtl2mupath_%s_revisit"
+        r_, tpt_, bnd_ = get_result(f"{JOB1}.csv", TMPLT % itm)
+        if r_ == "covered":
+            h_ += pl_repeated_hpn_reg_nm_t.format(s1=itm, nm=itm+"__final")
+            cv_perflocs_with_final.append(itm+"__final")
+
+    def add_new_set(current_set_list, set_idx, aSet, itm, repeat, no_repeat):
+        new_set_list = list()
+        if current_set_list is None:
+            current_set_list = list()
+            current_set_list.append(aSet)
+
+        for a in current_set_list:
+            new_set = set()
+            for pl in a:
+                new_set.add(pl)
+            if repeat:
+                PL_final = itm + "__final"
+                new_set.add(PL_final)
+                new_set_list.append(new_set)
+            if no_repeat:
+                new_set_list.append(a)
+            if not repeat and not no_repeat:
+               print(f"ERROR: {pl} in {set_idx}: {aSet}") 
+
+        return new_set_list
+                 
+
+    for set_idx, aSet in enumerate(reachable_sets):
+
+        set_not_added = True
+        for itm in cv_perflocs:
+            if pl_cyc.get(itm) == 1:
+                continue
+
+            if not itm in aSet:
+                continue
+
+            set_not_added = False
+            over_1_covered = False
+            only_1_covered = False
+
+
+            res, bnd, time = df_query(df, "cvr_rtl2mupath_over1cyc_%d_%s" % (set_idx, itm), exact_name=True)
+            res2, bnd2, time2 = df_query(df, "cvr_rtl2mupath_only1cyc_%d_%s" % (set_idx, itm), exact_name=True)
+            if res == "unreachable" or (res == "undetermined" and bnd >= 20) or res == "bounded_unreachable_user":
+                # can reach only 1 cycle even though other set has this nodes
+                # over 1 cycle
+                result_over_1_covered.append((set_idx, itm, 0))
+            elif res == "covered":
+                result_over_1_covered.append((set_idx, itm, 1))
+                over_1_covered = True
+
+            if res2 == "unreachable" or (res2 == "undetermined" and bnd >= 20) or res2 == "bounded_unreachable_user":
+                # can reach only 1 cycle even though other set has this nodes
+                # over 1 cycle
+                result_only_1_covered.append((set_idx, itm, 0))
+            elif res2 == "covered":
+                result_only_1_covered.append((set_idx, itm, 1))
+                only_1_covered = True
+
+            current_set_list = reachable_sets_new.get(set_idx) 
+            new_list = add_new_set(current_set_list, set_idx, aSet, itm, over_1_covered, only_1_covered)
+            reachable_sets_new[set_idx] = new_list
+
+
+        if set_not_added:
+            sets_without_repeated.append((set_idx,aSet))
+
+    with open("new_potential_sets.txt", "w") as f:
+        for idx, set_list in reachable_sets_new.items():
+            for s in set_list:
+                f.write("%s\n" % ",".join(s))
+
+    with open("new_potential_sets_with_idx.txt", "w") as f:
+        for idx, set_list in reachable_sets_new.items():
+            for s in set_list:
+                f.write("%d, %s\n" % (idx, ",".join(s)))
+
+
+    with open("sets_without_repeats.txt", "w") as f:
+        for idx, aSet in sets_without_repeated:
+            f.write("%d, %s\n" % (idx, ",".join(aSet)))
+
+
+    t_ = ""    
+    for set_idx, set_list in reachable_sets_new.items():
+       for new_set_idx, aSet in enumerate(set_list):
+            len_set = len(aSet)
+            if len_set == 0:
+                continue
+
+            s_ = ""
+            ors_ = ""
+            ors_hpn = ""
+            added_comb_lrq_loc = False
+            for loc in cv_perflocs_with_final:
+                if loc in cv_perflocs:
+                    ors_ += "{prefix}{s1} | ".format(s1=loc, prefix=prefix)
+                if loc in aSet:
+                    s_ += "{prefix}{s1}_hpn & ".format(s1=loc, prefix=prefix)
+                else:
+                    ors_hpn += "{prefix}{s1}_hpn | ".format(s1=loc, prefix=prefix)
+
+
+            s_ += "1'b1"
+            ors_ += "1'b0"
+            ors_hpn += "1'b0"
+            t_ += "cover -name cvr_rtl2mupath_recheck_subset_%d_%d {(@(posedge %sfv_clk) %s & !(%s) & !(%s))} \n" % (set_idx, new_set_idx, prefix, s_, ors_hpn, ors_)
+
+    with open(f"{JOB3}.tcl", "w") as f:
+        f.write(htcl_)
+        f.write("\n")
+        f.write(t_)
+        f.write("\n")
+        f.write("set props [get_property_list -include {name cvr_rtl2mupath_recheck_subset_*}] \n")
+        f.write("prove -property $props \n")
+        f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB3)
+        f.write("save %s.db -force\n" % JOB3)
+        f.write("file copy %s.csv %s/.\n" % (JOB3, os.getcwd()))
+        #f.write("exit\n")
+
+    with open(f"{JOB3}.sv", "w") as f:
+        f.write(h_)
+        f.write(e_)
+
+    return
+ 
+
+
+
 def pp():
     max_cyc_perloc = get_array("max_cycle_per_pl.txt")
     pl_cyc = {}
     for itm in max_cyc_perloc:
         pl_cyc[itm[0]] = int(itm[1])
-    
-    result = [] # (itm,cyc_that_covered,...)
+    reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True)
+ 
+    result_over_1_covered = [] # (itm,cyc_that_covered,...)
+    result_only_1_covered = []
     undetermined_result = []
     # itm, cyc, res
     fnm = os.getcwd() + "/%s.csv" % JOB2
@@ -188,16 +348,9 @@ def pp():
     seen_wait_comb = False
     df = pd.read_csv(fnm, dtype=mydtypes)
     for itm in cv_perflocs:
-        TMPLT="cvr_rtl2mupath_%s_revisit"
         if pl_cyc.get(itm) == 1:
             continue
 
-        #if itm in lrq0_entry0_wait_comb_list:
-        #    if seen_wait_comb:
-        #        continue
-        #    itm_nm = "lrq0_entry0_wait_comb"
-        #    seen_wait_comb = True
-        #else:
         itm_nm = itm
 
         for set_idx, aSet in enumerate(reachable_sets):
@@ -206,17 +359,55 @@ def pp():
 
             
             res, bnd, time = df_query(df, "cvr_rtl2mupath_over1cyc_%d_%s" % (set_idx, itm_nm), exact_name=True)
-            #print(res)
+            res2, bnd2, time2 = df_query(df, "cvr_rtl2mupath_only1cyc_%d_%s" % (set_idx, itm_nm), exact_name=True)
             if res == "unreachable" or (res == "undetermined" and bnd >= 20) or res == "bounded_unreachable_user":
                 # can reach only 1 cycle even though other set has this nodes
                 # over 1 cycle
-                result.append((set_idx, itm, 0))
+                result_over_1_covered.append((set_idx, itm, 0))
             else:
-                result.append((set_idx, itm, 1))
+                result_over_1_covered.append((set_idx, itm, 1))
+
+            if res2 == "unreachable" or (res2 == "undetermined" and bnd >= 20) or res2 == "bounded_unreachable_user":
+                # can reach only 1 cycle even though other set has this nodes
+                # over 1 cycle
+                result_only_1_covered.append((set_idx, itm, 0))
+            else:
+                result_only_1_covered.append((set_idx, itm, 1))
+
 
     with open("cycle_count_gt1_perset.txt", "w") as f:
-        for itm in result:
+        for itm in result_over_1_covered:
             f.write("%d,%s,%d\n" % itm)
+
+
+    with open("only1_cycle_covered_perset.txt", "w") as f:
+        for itm in result_only_1_covered:
+            f.write("%d,%s,%d\n" % itm)
+
+    fnm = os.getcwd() + "/%s.csv" % JOB3
+    check_file(fnm)
+    df = pd.read_csv(fnm, dtype=mydtypes)
+
+    potential_subset = get_array("new_potential_sets_with_idx.txt")
+    counter = 0
+    idx0 = -1
+    reachable_sets = list()
+    for elem in potential_subset:
+        idx = int(elem[0])
+        if idx != idx0:
+            counter = 0
+            idx0 = idx
+        else: 
+            counter += 1
+        subset = set(elem[1::])
+        res, bnd, time = df_query(df, "cvr_rtl2mupath_recheck_subset_%d_%d" % (idx, counter), exact_name=True)
+        if res == "covered":
+            reachable_sets.append(subset)
+
+    with open("new_reachable_sets.txt", "w") as f:
+        for itm in reachable_sets:
+            f.write("%s\n" % ",".join(itm))
+
 
 def stats():
     max_cyc_perloc = get_array("max_cycle_per_pl.txt")
@@ -283,7 +474,7 @@ def stats():
 
 
 if len(sys.argv) != 2:
-    print("gen/gen_s2/pp")
+    print("gen/gen_s2/gen_S3/pp")
     exit(0)
 
 opt = sys.argv[1]
@@ -291,6 +482,8 @@ if opt == "gen":
     gen()
 elif opt == "gen_s2":
     gen_s2()
+elif opt == "gen_s3":
+    gen_s3()
 elif opt == "pp":
     pp()
 elif opt == "stats":

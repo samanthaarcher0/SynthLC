@@ -13,31 +13,33 @@ proc get_path_info {S1 S2} {
         puts "$S1 $S2, $path"
         puts "$type1 $type2"
         set len [llength $path]
-        if { $type1 == "flop" && $type2 == "flop"} {
-            if { $len == 2 } {
-                puts "ADD $S1 $S2"
-            } elseif { $len == 3 } {
-                set ele0 [lindex $path 0]
-                set ele1 [lindex $path 1]
-                set ele2 [lindex $path 2]
-                if {($ele0 == $ele1) || ($ele1 == $ele2)} {
+        if {$len > 0} {
+            if { $type1 == "flop" && $type2 == "flop"} {
+                if { $len == 2 } {
                     puts "ADD $S1 $S2"
+                } elseif { $len == 3 } {
+                    set ele0 [lindex $path 0]
+                    set ele1 [lindex $path 1]
+                    set ele2 [lindex $path 2]
+                    if {($ele0 == $ele1) || ($ele1 == $ele2)} {
+                        puts "ADD $S1 $S2"
+                    }
                 }
             }
-        }
-        if { $type1 == "flop" && $type2 == "wire" && $len <= 3 } {
-            puts "ADD $S1 $S2"
-        }
-        if { $type1 == "wire" && $type2 == "wire" } {
-            if { $len == 2 } {
-                puts "ADD(ww2) $S1 $S2"
-            } elseif { $len == 3 } {
-                puts "ADD(ww) $S1 $S2"
-            } 
-        }
-        if { $type1 == "wire" && $type2 == "flop" } {
-            if { $len == 2 } {
+            if { $type1 == "flop" && $type2 == "wire" && $len <= 3 } {
                 puts "ADD $S1 $S2"
+            }
+            if { $type1 == "wire" && $type2 == "wire" } {
+                if { $len == 2 } {
+                    puts "ADD(ww2) $S1 $S2"
+                } elseif { $len == 3 } {
+                    puts "ADD(ww) $S1 $S2"
+                } 
+            }
+            if { $type1 == "wire" && $type2 == "flop" } {
+                if { $len == 2 } {
+                    puts "ADD $S1 $S2"
+                }
             }
         }
     }

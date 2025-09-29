@@ -27,6 +27,7 @@ with open(HEADERTCL, "r") as f:
     htcl_ += template_proc
 
 perfloc_signals = {}
+perfloc_iir_signals = {}
 try:
     with open(PLFILE, 'r') as f:
         for line in f:
@@ -34,10 +35,12 @@ try:
             k = arr[0]
             v = arr[1].split(",")
             perfloc_signals[k] = v
+            perfloc_iir_signals[k] = [v[0]]
 except FileNotFoundError:
     print("File not found")
     sys.exit(1)
 print(perfloc_signals)
+print(perfloc_iir_signals)
 
 with open("../../../user_provided_files/combined_pls.txt", "r") as f:
     combined_pls = f.readlines()
@@ -52,7 +55,8 @@ for nm, pl_set in combined_pl_dict.items():
 def gen():
     pairs = []
     #get_array("../xPerfLocSubsetDiv/reachable_set.txt")
-    perf_locs_names = list(perfloc_signals.keys())
+
+    perf_locs_names = list(perfloc_iir_signals.keys())
 
     with open("get_dfg.sv", "w") as sv_dfg_f:
         sv_dfg_f.write(h_)
@@ -65,8 +69,8 @@ def gen():
         for itm in perf_locs_names:
             for itm2 in perf_locs_names:
                 if itm != itm2:
-                    for s1 in perfloc_signals[itm]:
-                        for s2 in perfloc_signals[itm2]:
+                    for s1 in perfloc_iir_signals[itm]:
+                        for s2 in perfloc_iir_signals[itm2]:
                             if not (s1, s2) in pairs_sigs:
                             #if s1 != s2 and not (s1, s2) in pairs_sigs:
                                 assert(len(s1) != 0)
@@ -109,7 +113,7 @@ def pp():
             print(f"edges exist {edges_exists}") 
     pairs = []
 
-    perf_locs_names = list(perfloc_signals.keys())
+    perf_locs_names = list(perfloc_iir_signals.keys())
 
     for itm in perf_locs_names:
         for itm2 in perf_locs_names:
@@ -119,8 +123,8 @@ def pp():
     dfe_exists = []
     for p_ in pairs:
         itm, itm2 = p_
-        for s1 in perfloc_signals[itm]:
-            for s2 in perfloc_signals[itm2]:
+        for s1 in perfloc_iir_signals[itm]:
+            for s2 in perfloc_iir_signals[itm2]:
                 #if "issue" in s1:
                 #    print(s1, s2)
                 #if s1 != s2 and (s1, s2) in edges_exists:

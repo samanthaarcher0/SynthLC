@@ -221,6 +221,24 @@ always @(posedge fv_clk) begin
 end
 '''
 
+pl_repeated_hpn_reg_nm_t = '''
+reg {s1}_prev;
+always @(posedge fv_clk) begin
+    if (reset_i)
+        {s1}_prev <= 1'b0;
+    else
+        {s1}_prev <= {s1};
+end
+
+reg {nm}_hpn;
+always @(posedge fv_clk) begin
+    if (reset_i)
+        {nm}_hpn <= 1'b0;
+    else if ({s1} & {s1}_prev)
+        {nm}_hpn <= 1'b1;
+end
+'''
+
 hpn_reg_t = '''
 reg {s1}_hpn;
 always @(posedge fv_clk) begin

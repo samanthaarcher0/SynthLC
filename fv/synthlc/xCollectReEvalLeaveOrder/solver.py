@@ -148,7 +148,7 @@ class MySolver:
 
         self.solver.push()
         r = self.solver.check()
-        #print(r)
+        print(r)
         # pythonic sat
         assert(r == sat)
 

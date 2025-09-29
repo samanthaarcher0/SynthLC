@@ -53,66 +53,57 @@ FV_UNITDIR=$(realpath ../../..)
 
 
 ######### 
-# STEP 5
+# STEP 11
 ######### 
 cd $INAME
 INAME_DIR=$(realpath .)
 
 echo "
 ================================================================================
-STEP 5 at $(pwd) $(date)
+STEP 11 at $(pwd) $(date)
 ================================================================================
 "
 
-# 1. For each reachable PL set, get revisit information for each PL for 
-# 2. For each IUV PLs, is it re-visitable and what is max cycle that it is
-# revisited 
-DIR=xPerfLocCycleCount
-PYSCRPT=xPerfLocCycleCountAllSet
+# 1. ...
+# 2. ...
+DIR=xFollowerSetsOnly
+PYSCRPT=xFollowerSetsOnly
 if [ -d "${DIR}" ]; then 
     echo "Directory exists ${DIR} and skip"
-else 
+#else 
     cp -r ../${DIR} .
 
-    
-    JOB1=rtl2mupath_pl_revisit_possible
-    JOB2=rtl2mupath_pl_subset_revisit_possible
-    JOB3=rtl2mupath_pl_subset_combination_check
-    TCLFILE1=$(realpath ${DIR})/${JOB1}.tcl
-    SVFILE1=$(realpath ${DIR})/${JOB1}.sv
+   
+    JOB1=rtl2mupath_followers
+    JOB2=rtl2mupath_first_pls
+    JOB3=rtl2mupath_first_pl_sets
+    TCLFILE=$(realpath ${DIR})/${JOB1}.tcl
+    SVFILE=$(realpath ${DIR})/${JOB1}.sv
     TCLFILE2=$(realpath ${DIR})/${JOB2}.tcl
     SVFILE2=$(realpath ${DIR})/${JOB2}.sv
     TCLFILE3=$(realpath ${DIR})/${JOB3}.tcl
     SVFILE3=$(realpath ${DIR})/${JOB3}.sv
 
-
-    # Generate properties to check for repeated PLs
-    cd ${DIR}; 
-    python3 ${PYSCRPT}.py gen;
-
-    # Run Jasper to determine which PLs can be repeated in any subset
-    cd ../../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE1} ${SVFILE1}
-
-
-    # Generate properties to check for whether a PL can be repeated in a particular subset
     cd ${INAME_DIR}/${DIR};
-    python3 ${PYSCRPT}.py gen_s2;
-     
-    # Run Jasper to determine if a PL can be repeated within a particular subset
+    python3 ${PYSCRPT}.py gen; 
+
+    cd ../../..
+    ./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
+
+    cd ${INAME_DIR}/${DIR};
+    python3 ${PYSCRPT}.py gen_s2; 
+
     cd ../../..
     ./run.sh ${FV_UNITDIR} ${TCLFILE2} ${SVFILE2}
 
-
-    # Generate properties to check for whether combinations of PLs are revisited/not revisited in a subset
     cd ${INAME_DIR}/${DIR};
-    python3 ${PYSCRPT}.py gen_s3;
+    python3 ${PYSCRPT}.py gen_s3; 
 
-    # Run Jasper to determine if a PL can be repeated within a particular subset
     cd ../../..
     ./run.sh ${FV_UNITDIR} ${TCLFILE3} ${SVFILE3}
 
+    cd ${INAME_DIR}/${DIR};
+    python3 ${PYSCRPT}.py pp
+
 fi
 
-cd ${INAME_DIR}/${DIR};
-python3 ${PYSCRPT}.py pp; 

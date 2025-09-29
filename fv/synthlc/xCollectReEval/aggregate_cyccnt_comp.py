@@ -50,7 +50,8 @@ class GenComb:
 is_interference_case = "III" in os.getcwd()
 
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
-edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
+#edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
+edge = get_array("../xCoverCandidateHBEdges/covered_edges.txt")
 
 with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
     combined_pls = f.readlines()
@@ -70,74 +71,17 @@ for comb_pl, pl_list in combined_pl_dict.items():
 #its possible to have two happen concurrently if not we should see if per PL set \
 #is always one way or the other")
 
-# list_rows = [
-#     "id_stage_s1",
-#     "issue_s1",
-#     "issue_s2",
-#     "issue_s8",
-#     "issue_s16",
-#     "issue_s32",
-#     "lsq_enq_0_s1",
-#     "lsq_enq_1_s1",
-#     "serdiv_unit_divide_s1",
-#     "serdiv_unit_divide_s2",
-#     "stb_spec_0_s1",
-#     "stb_spec_1_s1",
-#     "load_unit_s1",
-#     "store_unit_s1",
-#     "store_unit_s3",
-#     "load_unit_buff_s1",
-#     "csr_buffer_s1",
-#     "mult_s1",
-#     "scb_0_s12",
-#     "scb_0_s13",
-#     "scb_0_s14",
-#     "scb_0_s8",
-#     "scb_1_s12",
-#     "scb_1_s13",
-#     "scb_1_s14",
-#     "scb_1_s8",
-#     "scb_2_s12",
-#     "scb_2_s13",
-#     "scb_2_s14",
-#     "scb_2_s8",
-#     "scb_3_s12",
-#     "scb_3_s13",
-#     "scb_3_s14",
-#     "scb_3_s8",
-#     "stb_com_0_s1",
-#     "stb_com_1_s1",
-#     "load_unit_op_s1",
-#     "load_unit_op_s2",
-#     "load_unit_op_s3",
-#     "mem_req_s1",
-# ]
-
 enter_concurrent_pairs = get_array("../xHBPerfG_dfg_v3_div/aws_concurrent.txt", exit_on_fail=False)
 whb_edge = get_array("../xHBPerfG_dfg_v3_div/whb_proven.txt", exit_on_fail=False)
 hb_edge = get_array("../xHBPerfG_dfg_v3_div/hb_proven.txt", exit_on_fail=False)
 print("HB edge:", hb_edge)
-reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True)
+reachable_sets = get_array("../xPerfLocCycleCount/new_reachable_sets.txt", arr_as_ele = True)
 
-#if os.path.exists("../xPerfLocCycleCount_v2/max_cycle_per_pl.txt"):
-#    max_cyc_per_pl_raw = get_array("../xPerfLocCycleCount_v2/max_cycle_per_pl.txt")
-#    print("perfloc cycle v2")
-#else:
 max_cyc_per_pl_raw = get_array("../xPerfLocCycleCount/max_cycle_per_pl.txt")
-#print("TBD")
-    #if os.path.exists("../xPerfLocCycleCount/max_cycle_per_pl_covered.txt"):
-    #    max_cyc_per_pl_raw = get_array("../xPerfLocCycleCount/max_cycle_per_pl_covered.txt")
-    #    print("pl_covered.txt")
-    #else:
-    #    max_cyc_per_pl_raw = get_array("../xPerfLocCycleCount/max_cycle_per_pl.txt")
-    #    print("pl.txt")
 
 max_cyc_per_pl = {}
 for itm in max_cyc_per_pl_raw:
     max_cyc_per_pl[itm[0]] = int(itm[1])
-#if os.path.exists("../xPerfLocCycleCount_v2/max_cycle_per_pl.txt"):
-#    cyc_cnt_gt1_per_set_raw = get_array("../xPerfLocCycleCount_v2/cycle_count_gt1_perset.txt")
-#else:
 cyc_cnt_gt1_per_set_raw = get_array("../xPerfLocCycleCount/cycle_count_gt1_perset.txt")
 
 cyc_cnt_gt1_per_set = {}
@@ -148,7 +92,6 @@ for itm in cyc_cnt_gt1_per_set_raw:
         if cyc_cnt_gt1_per_set.get(set_idx) is None:
             cyc_cnt_gt1_per_set[set_idx] = []
         cyc_cnt_gt1_per_set[set_idx].append(pl)
-#print(cyc_cnt_gt1_per_set)
 
 
 leaving_hb_proven_res = get_array("../xHBPerfG_leaving/leaving_hb_proven.txt", exit_on_fail=False)
@@ -156,10 +99,10 @@ leaving_hb_proven_res_pairs = []
 for itm in leaving_hb_proven_res:
     u = itm[1]
     if itm[0] == "1":
-        u += "___final"
+        u += "__final"
     v = itm[3]
     if itm[2] == "1":
-        v += "___final"
+        v += "__final"
     leaving_hb_proven_res_pairs.append((u, v))
 print("leaving_hb_proven_res_pairs:", leaving_hb_proven_res_pairs)
 aws_concur_leaving = get_array("../xHBPerfG_leaving/leaving_concur_proven.txt", exit_on_fail=False)
@@ -167,10 +110,10 @@ aws_concur_leaving_pairs = []
 for itm in aws_concur_leaving:
     u = itm[1]
     if itm[0] == "1":
-        u += "___final"
+        u += "__final"
     v = itm[3]
     if itm[2] == "1":
-        v += "___final"
+        v += "__final"
     aws_concur_leaving_pairs.append((u, v))
 print("aws_concur_leaving_pairs:", aws_concur_leaving_pairs)
 
@@ -197,37 +140,19 @@ hb_cex_e = get_array("../xHBPerfG_dfg_v3_div/whb_todo.txt")
 
 intra_single_cyc = {}
 
-
-# node_rows = {}
-# label_s = ""
-# row = 0
-# for _, v in enumerate(list_rows):
-#     node_rows[v] = row
-#     label_s += label.format(nm=v,loc=row)
-#     row += 1
-#     if v in max_cyc_per_pl and max_cyc_per_pl[v] > 1:
-#     #if v in over1cyc_pl:
-#         label_s += label.format(nm = v + "___final", loc=row)
-#         node_rows[v + "___final"] = row
-#         row += 1
-
 path_cnt = 0
 
 
-lrq0_nonzero_entry = ["lrq0_entry1_s0", "lrq0_entry1_s1", "lrq0_entry1_s2", "lrq0_entry1_s3", "lrq0_entry1_s4", "lrq0_entry1_s5", "lrq0_entry1_s6", "lrq0_entry1_s8", "lrq0_entry1_s9",
-                    "lrq0_entry2_s0", "lrq0_entry2_s1", "lrq0_entry2_s2", "lrq0_entry2_s3", "lrq0_entry2_s4", "lrq0_entry2_s5", "lrq0_entry2_s6", "lrq0_entry2_s8", "lrq0_entry2_s9",
-                    "lrq0_entry3_s0", "lrq0_entry3_s1", "lrq0_entry3_s2", "lrq0_entry3_s3", "lrq0_entry3_s4", "lrq0_entry3_s5", "lrq0_entry3_s6", "lrq0_entry3_s8", "lrq0_entry3_s9"]
-lrq0_entry0_wait_comb = ["lrq0_entry0_s2","lrq0_entry0_s3", "lrq0_entry0_s4", "lrq0_entry0_s5", "lrq0_entry0_s6", "lrq0_entry0_s8", "lrq0_entry0_s9"]
-
+cv_perflocs_with_final = list()
 for itm in cv_perflocs:
     h_ += hpn_reg_t2.format(s1=itm)
-ors_ = ""
-for pl in lrq0_entry0_wait_comb:
-    ors_ += "{s1} || ".format(s1=pl)
-ors_ += "1'b0"
-h_ += hpn_reg_nm_t.format(nm = "lrq0_entry0_wait_comb", s1 = ors_)
+    cv_perflocs_with_final.append(itm)
 
-
+for PL, cnt in max_cyc_per_pl.items():
+    if cnt > 1:
+        h_ += pl_repeated_hpn_reg_nm_t.format(s1=PL, nm=PL+"__final")
+        cv_perflocs_with_final.append(PL+"__final")
+    
 
 def gen():
     global htcl_
@@ -236,8 +161,6 @@ def gen():
         print("===== SET idx: %d ====" % set_idx)
         print("Nodes: ", aSet)
         DG = nx.DiGraph()
-        #if set_idx != 133:
-        #    continue
 
         print("\nAdding HB edges ... ")
         for e in hb_edge:
@@ -252,30 +175,32 @@ def gen():
 
         print("\nRepeated nodes ...")
         for itm in aSet:
+            itm = itm.strip()
             DG.add_node(itm)
 
             # if perset_pl_cyc.get(set_idx) is None:
-            if cyc_cnt_gt1_per_set.get(set_idx) is None:
-                print("no repeats")
-                continue
+            #if cyc_cnt_gt1_per_set.get(set_idx) is None:
+            #    print("no repeats")
+            #    continue
 
             ## at least one greater than 1 
             #cyc_cnt = [int(r) > 1 for r in cyc]
             #if sum(cyc_cnt) >= 1:
-            if itm in cyc_cnt_gt1_per_set[set_idx]:
+            if "__final" in itm:
+                non_final_itm = itm.replace("__final", "")
                 print(itm)
-                edge_weight[(itm, itm+"___final")] = \
-                    [t for t in range(0, max_cyc_per_pl[itm])] #max #[int(r)-1 for r in cyc]
-                iid_map_tmp[itm+"___final"] = iid_map_tmp[itm]
+                edge_weight[(non_final_itm, itm)] = \
+                    [t for t in range(1, max_cyc_per_pl[non_final_itm])] #max #[int(r)-1 for r in cyc]
+                iid_map_tmp[itm] = iid_map_tmp[non_final_itm]
             
                 # since its same ufsm, if entering e[0] happens-before entering
                 # e[1], leaving e[0] should also happens-before entering e[1]
-                for e in DG.out_edges(itm):
+                for e in DG.out_edges(non_final_itm):
                     if iid_map_tmp[e[0]] == iid_map_tmp[e[1]]:
-                        implied_edges_same_iid.append((itm + "___final", e[1]))
+                        implied_edges_same_iid.append((itm, e[1]))
                     
-                DG.add_edge(itm, itm + "___final") 
-                print("new_edge: ", (itm, itm + "___final"))
+                DG.add_edge(non_final_itm, itm) 
+                print("new_edge: ", (non_final_itm, itm))
 
         print("\n")
         print(DG.edges) 
@@ -288,7 +213,7 @@ def gen():
         #    for e in intra_single_cyc[set_idx]:
         #        # only use for source not longer than 1 cycle: (otherwise if its
         #        # staying longer than 1 cycle it will implies many more things  more correlation..)
-        #        if not e[0] + "___final" in iid_map_tmp:
+        #        if not e[0] + "__final" in iid_map_tmp:
         #            print("heuristic", set_idx, e)
         #            edge_weight_single.append(e)
         #            DG.add_edge(e[0], e[1])
@@ -296,17 +221,10 @@ def gen():
         #    print("intra_single_cyc don't have key ", set_idx)
 
 
-
-        #print(hb_edge)
-        #print(DG.graph)
-        #print(DG.nodes)
-        #print(DG.edges)
         print("\nimplied iid edges: ",implied_edges_same_iid)
         for e in implied_edges_same_iid:
             DG.add_edge(*e)
             
-
-        #print(DG.graph)
 
         print("\nleaving hb proven edges: ")
         for itm in leaving_hb_proven_res_pairs:
@@ -316,9 +234,6 @@ def gen():
 
         #for itm in aws_concur_leaving_pairs:
         #    if itm[0] in DG.nodes() and itm[1] in DG.nodes():
-        #print(DG.graph)
-        #print(DG.nodes)
-        #print(DG.edges)
 
         #print(f"enter concur {enter_concurrent_pairs}")
         #print(f"aws concur {aws_concur_leaving_pairs}")
@@ -327,8 +242,6 @@ def gen():
             a, b = e
             if not (a in DG.nodes() and b in DG.nodes()):
                 continue
-            print("\nedge: ", e)
-            #print(DG.edges)
             #print("\n\n in edges 0")
             try:
                 c = nx.find_cycle(DG)
@@ -338,8 +251,6 @@ def gen():
                 pass
             
             in_edges = DG.in_edges(e[0])
-            #print("\n\nin edges: ", in_edges)
-            print("all edges: ", DG.edges())
             print("\n\n")
             for e_prime in in_edges:
                 assert(e_prime[1] == e[0])
@@ -347,18 +258,13 @@ def gen():
                 DG.add_edge(e_prime[0], e[1])
                 num_edges2 = len(DG.edges)
                 if num_edges2 != num_edges1:            
-                    #print(e)
-                    #print(e_prime)
                     print(f"Adding edge: {e} is concurrent + HB edge {e_prime} implies {(e_prime[0], e[1])}")
                 if (e_prime[0] == e[1]):
                     print(f"Looking at in edges to {e[0]}: {in_edges}")
                     assert(0)
 
-            #print(DG.edges)
-            #print("\n\n in edges 1")
-
             try:
-                c = nx.f3nd_cycle(DG)
+                c = nx.find_cycle(DG)
                 print(f"0 Set {set_idx} error with transitive reduction. cycles:")
                 print(nx.find_cycle(DG))
             except:
@@ -398,10 +304,6 @@ def gen():
                 if e_prime[1] == e[1]:
                     print(f"Looking at out edges from {e[0]}: {out_edges}")
                     assert(0)
-
-
-            #print(DG.edges)
-            #print("\n\n out edges 1")
 
 
             out_edges = DG.out_edges(e[1])
@@ -524,30 +426,29 @@ def gen():
             #     f.write(h_)
             s = ""
             ns = ""
-            all = ""
-            for pl in cv_perflocs:
-                all += "{prefix}{s1} || ".format(s1=pl, prefix=prefix)
+            all_pls = ""
+            for pl in cv_perflocs_with_final:
+                if "__final" not in pl:
+                    all_pls += "{prefix}{s1} || ".format(s1=pl, prefix=prefix)
                 if not pl in aSet:
-                    # f.write(no_s1_t.format(s1=pl))
                     ns += "{prefix}{s1}_hpn || ".format(s1=pl, prefix=prefix)
                 else:
-                    # f.write(hpn_reg_t2.format(s1=pl))
-                    s += "{prefix}{s1}_hpn && ".format(s1=pl, prefix=prefix)
+                    s += "{prefix}{s1}_hpn && ".format(s1=pl, prefix=prefix)    
             s += "1'b1 "
             ns += "1'b0 "
-            all += "1'b0 "
-            set = s + " & !(%s)" % ns + " & !(%s)" % all
+            all_pls += "1'b0 "
+            reach_set = s + " & !(%s)" % ns + " & !(%s)" % all_pls
             for k, v in pairs_todo_pruned.items():
                 for tt in v:
                     if ">" == tt:
                         # f.write(C_hb_prop.format(e0=k[0], e1=k[1]))
-                        htcl_ += C_hb_prop_tcl.format(idx=set_idx, e0=k[0], e1=k[1], set=set, prefix=prefix)
+                        htcl_ += C_hb_prop_tcl.format(idx=set_idx, e0=k[0], e1=k[1], set=reach_set, prefix=prefix)
                     elif "<" == tt:
                         # f.write(C_hb_prop.format(e0=k[1], e1=k[0]))
-                        htcl_ += C_hb_prop_tcl.format(idx=set_idx, e0=k[1], e1=k[0], set=set, prefix=prefix)
+                        htcl_ += C_hb_prop_tcl.format(idx=set_idx, e0=k[1], e1=k[0], set=reach_set, prefix=prefix)
                     else:
                         # f.write(C_concur_prop.format(e0=k[1], e1=k[0]))
-                        htcl_ += C_concur_prop_tcl.format(idx=set_idx, e0=k[1], e1=k[0], set=set, prefix=prefix)
+                        htcl_ += C_concur_prop_tcl.format(idx=set_idx, e0=k[1], e1=k[0], set=reach_set, prefix=prefix)
 
             print(1)
         print(2)

@@ -24,7 +24,8 @@ with open(HEADERTCL, "r") as f:
         htcl_ += line
 
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
-edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
+#edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
+edge = get_array("../xCoverCandidateHBEdges/covered_edges.txt")
 
 with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
     combined_pls = f.readlines()
