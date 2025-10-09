@@ -278,12 +278,12 @@ def gen_s3():
     with open("new_potential_sets_with_idx.txt", "w") as f:
         for idx, set_list in reachable_sets_new.items():
             for s in set_list:
-                f.write("%d, %s\n" % (idx, ",".join(s)))
+                f.write("%d,%s\n" % (idx, ",".join(s)))
 
 
     with open("sets_without_repeats.txt", "w") as f:
         for idx, aSet in sets_without_repeated:
-            f.write("%d, %s\n" % (idx, ",".join(aSet)))
+            f.write("%d,%s\n" % (idx, ",".join(aSet)))
 
 
     t_ = ""    
@@ -347,6 +347,24 @@ def pp():
     check_file(fnm)
     seen_wait_comb = False
     df = pd.read_csv(fnm, dtype=mydtypes)
+
+    new_reachable_sets = list()
+    new_reachable_sets_dict = dict()
+
+    for set_idx, aSet in enumerate(reachable_sets):
+        never_more_than1 = True
+        for itm in aSet:
+            if pl_cyc.get(itm) > 1:
+                never_more_than1 = False
+                break
+
+        if never_more_than1:
+            new_reachable_sets.append(aSet)
+            if new_reachable_sets_dict.get(set_idx) is None:
+                new_reachable_sets_dict[set_idx] = list()
+            new_reachable_sets_dict[set_idx].append(aSet)
+
+
     for itm in cv_perflocs:
         if pl_cyc.get(itm) == 1:
             continue
@@ -391,7 +409,6 @@ def pp():
     potential_subset = get_array("new_potential_sets_with_idx.txt")
     counter = 0
     idx0 = -1
-    reachable_sets = list()
     for elem in potential_subset:
         idx = int(elem[0])
         if idx != idx0:
@@ -402,11 +419,21 @@ def pp():
         subset = set(elem[1::])
         res, bnd, time = df_query(df, "cvr_rtl2mupath_recheck_subset_%d_%d" % (idx, counter), exact_name=True)
         if res == "covered":
-            reachable_sets.append(subset)
+            new_reachable_sets.append(subset)
+            if new_reachable_sets_dict.get(idx) is None:
+                new_reachable_sets_dict[idx] = list()
+            new_reachable_sets_dict[idx].append(subset)
 
     with open("new_reachable_sets.txt", "w") as f:
-        for itm in reachable_sets:
+        for itm in new_reachable_sets:
             f.write("%s\n" % ",".join(itm))
+
+    with open("new_reachable_sets_with_idx.txt", "w") as f:
+        for idx, itm in new_reachable_sets_dict.items():
+            for subset in itm:
+                comma = ","
+                f.write(f"{idx},{comma.join(subset)}\n")
+
 
 
 def stats():

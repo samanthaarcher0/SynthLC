@@ -105,7 +105,7 @@ def pp():
         TMPLT="cvr_rtl2mupath_{s1}_HB_1_cyc_{s2}"
         TMPLT2="cvr_rtl2mupath_{s1}_CONCUR_1_cyc_{s2}"
         r_, t_, b_ = get_result(f"{JOB}.csv", TMPLT.format(s1=itm[0], s2=itm[1])) #"ariane.HB_%d" % idx)
-        r2_, t2_, b2_ = get_result(f"{JOB}.csv", TMPLT.format(s1=itm[0], s2=itm[1])) 
+        r2_, t2_, b2_ = get_result(f"{JOB}.csv", TMPLT2.format(s1=itm[0], s2=itm[1])) 
         if r_ == "ERR":
             print("FAIL HB %s" % itm)
         if r_ == "covered":
@@ -124,7 +124,7 @@ def pp():
             unreachable_concur.append(itm)
         elif r2_ == "undetermined":
             undetermined_concur.append(itm)
-            print("undetermined HB: ", itm)
+            print("undetermined CONCUR: ", itm)
 
         if r_ == "covered" or r2_ == "covered":
             covered_all.append(itm)

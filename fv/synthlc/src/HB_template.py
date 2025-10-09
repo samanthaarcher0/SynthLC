@@ -1,36 +1,53 @@
 A_enter_hb_final = '''
-A_{e0nm}_hb_{e1nm}: assume property (@(posedge fv_clk) (!{e0}_hpn & {e0}) |-> ((!{e1}_hpn) or ({e1} ##1 {e1})));
+A_{e0nm}_hb_{e1nm}: assume property (@(posedge fv_clk) (!{e0}_hpn & {e0}) |-> ((!{e1}_hpn) | ({e1} ##1 {e1})));
 '''
+
+A_enter_hb_final_expr_only = '''!(!{e0}_prev_hpn & {e0}_prev) | ((!{e1}_prev_hpn) | ({e1}_prev & {e1})) '''
+
+
 A_final_hb_final = '''
 A_{e0nm}_hb_{e1nm}: assume property (@(posedge fv_clk) ($past({e0}) & !{e0}) |->  ((!{e1}_hpn) | {e1}));
 '''
+
+A_final_hb_final_expr_only = '''!({e0}_prev & !{e0}) |  (!{e1}_hpn | {e1}) '''
+
 A_final_hb_enter = '''
 A_{e0nm}_hb_{e1nm}: assume property (@(posedge fv_clk) ($past({e0}) & !{e0}) |-> (!{e1}_hpn));
 '''
+
+A_final_hb_enter_expr_only = '''!({e0}_prev & !{e0}) |  (!{e1}_hpn) '''
+
 A_enter_concur_final = '''
 A_{e0nm}_concur_{e1nm}: assume property (@(posedge fv_clk) ({e0} & !{e0}_hpn) |-> ({e1} ##1 !{e1}));
 '''
+
+A_enter_concur_final_expr_only = '''!({e0}_prev & !{e0}_prev_hpn) | ({e1}_prev & !{e1})'''
+
+
 A_final_concur_final = '''
 A_{e0nm}_concur_{e1nm}: assume property (@(posedge fv_clk) ($past({e0}) & !{e0}) |-> ($past({e1}) & !{e1}));
 '''
+
+A_final_concur_final_expr_only = '''!({e0}_prev & !{e0}) | ({e1}_prev & !{e1})'''
+
+
 A_final_concur_enter = '''
 A_{e0nm}_concur_{e1nm}: assume property (@(posedge fv_clk) ($past({e0}) & !{e0}) |-> ($past(!{e1}_hpn & {e1})));
 '''
 
+A_final_concur_enter_expr_only = '''!({e0}_prev & !{e0}) | (!{e1}_prev_hpn & {e1}_prev)'''
+
+
 A_enter_hb_enter = '''
 A_{e0}_hb_{e1}: assume property (@(posedge fv_clk) ({e0} & !{e0}_hpn) |-> !({e1} | {e1}_hpn));
 '''
-A_enter_hb_enter_expr_only = '''
-({e0} & !{e0}_hpn) |-> !({e1} | {e1}_hpn));
-'''
+A_enter_hb_enter_expr_only = '''((!({e0} & !{e0}_hpn)) | !({e1} | {e1}_hpn))'''
 
 A_enter_concur_enter = '''
 A_{e0}_concur_{e1}: assume property (@(posedge fv_clk) ({e0} & !{e0}_hpn) |-> ({e1} & !{e1}_hpn));
 A_{e0}_concur_{e1}_2: assume property (@(posedge fv_clk) ({e1} & !{e1}_hpn) |-> ({e0} & !{e0}_hpn));
 '''
-A_enter_concur_enter_expr_only = '''
-({e0} & !{e0}_hpn) |-> ({e1} & !{e1}_hpn)) && ({e1} & !{e1}_hpn) |-> ({e0} & !{e0}_hpn));
-'''
+A_enter_concur_enter_expr_only = '''(((!({e0} & !{e0}_hpn)) | ({e1} & !{e1}_hpn)) && (!({e1} & !{e1}_hpn) | ({e0} & !{e0}_hpn)))'''
 
 
 
@@ -56,24 +73,23 @@ CS_{e0nm}_hb_{e1nm}: cover property (@(posedge fv_clk) {e0} ##1 (!{e0} & ((!{e1}
 C_final_concur_final = '''
 CS_{e0nm}_concur_{e1nm}: cover property (@(posedge fv_clk) ({e0} & {e1}) ##1 !({e0} | {e1}) ##[0:$] set_r);
 '''
-
 C_final_hb_enter_tcl = '''
-cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_hb_{e1nm} {{(@(posedge fv_clk) {e0} ##1 (!{e0} & !{e1}_hpn) ##[0:$] {set} && {asums})}};
+cover -name cvr_rtl2mupath_CS_set{idx}_comb{combidx}_{e0nm}_hb_{e1nm} {{(@(posedge {prefix}fv_clk) {prefix}{e0} ##1 (!{prefix}{e0} & !{prefix}{e1}_hpn) ##[0:$] {set} && {asums})}};
 '''
 C_final_concur_enter_tcl = '''
-cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_concur_{e1nm} {{(@(posedge fv_clk) ({e0} & {e1} & !{e1}_hpn) ##1 (!{e0}) ##[0:$] {set} && {asums})}};
+cover -name cvr_rtl2mupath_CS_set{idx}_comb{combidx}_{e0nm}_concur_{e1nm} {{(@(posedge {prefix}fv_clk) ({prefix}{e0} & {prefix}{e1} & !{prefix}{e1}_hpn) ##1 (!{prefix}{e0}) ##[0:$] {set} && {asums})}};
 '''
 C_enter_hb_final_tcl = '''
-cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_hb_{e1nm} {{(@(posedge fv_clk) !{e0} ##1 ({e0} & ((!{e1}_hpn) | {e1})) ##[1:$] {e1} ##[0:$] {set} && {asums})}};
+cover -name cvr_rtl2mupath_CS_set{idx}_comb{combidx}_{e0nm}_hb_{e1nm} {{(@(posedge {prefix}fv_clk) !{prefix}{e0} ##1 ({prefix}{e0} & ((!{prefix}{e1}_hpn) | {prefix}{e1})) ##[1:$] {prefix}{e1} ##[0:$] {set} && {asums})}};
 '''
 C_enter_concur_final_tcl = '''
-cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_concur_{e1nm} {{(@(posedge fv_clk) ({e0} & !{e0}_hpn & {e1}) ##1 (!{e1}) ##[0:$] {set} && {asums})}};
+cover -name cvr_rtl2mupath_CS_set{idx}_comb{combidx}_{e0nm}_concur_{e1nm} {{(@(posedge {prefix}fv_clk) ({prefix}{e0} & !{prefix}{e0}_hpn & {prefix}{e1}) ##1 (!{prefix}{e1}) ##[0:$] {set} && {asums})}};
 '''
 C_final_hb_final_tcl = '''
-cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_hb_{e1nm} {{(@(posedge fv_clk) {e0} ##1 (!{e0} & ((!{e1}_hpn) | {e1})) ##[0:$] {set} && {asums})}};
+cover -name cvr_rtl2mupath_CS_set{idx}_comb{combidx}_{e0nm}_hb_{e1nm} {{(@(posedge {prefix}fv_clk) {prefix}{e0} ##1 (!{prefix}{e0} & ((!{prefix}{e1}_hpn) | {prefix}{e1})) ##[0:$] {set} && {asums})}};
 '''
 C_final_concur_final_tcl = '''
-cover -name cvr_rtl2mupath_CS_{idx}_{e0nm}_concur_{e1nm} {{(@(posedge fv_clk) ({e0} & {e1}) ##1 !({e0} | {e1}) ##[0:$] {set} && {asums})}};
+cover -name cvr_rtl2mupath_CS_set{idx}_comb{combidx}_{e0nm}_concur_{e1nm} {{(@(posedge {prefix}fv_clk) ({prefix}{e0} & {prefix}{e1}) ##1 !({prefix}{e0} | {prefix}{e1}) ##[0:$] {set} && {asums})}};
 '''
 
 C_hb_prop = '''
@@ -182,12 +198,12 @@ end
 '''
 
 contradict_flag_hpn_reg_nm_t = '''
-reg {nm}_hpn;
+reg {nm};
 always @(posedge fv_clk) begin
     if (reset_i)
-        {nm}_hpn <= 1'b0;
+        {nm} <= 1'b0;
     else if (!({s1}))
-        {nm}_hpn <= 1'b1;
+        {nm} <= 1'b1;
 end
 '''
 
@@ -201,6 +217,15 @@ always @(posedge fv_clk) begin
 end
 '''
 
+prev_hpn_reg_t = '''
+reg {s1}_prev_hpn;
+always @(posedge fv_clk) begin
+    if (reset_i) 
+        {s1}_prev_hpn <= 1'b0;
+    else if ({s1}_hpn)
+        {s1}_prev_hpn <= 1'b1;
+end
+'''
 
 
 pl_repeated_hpn_reg_t = '''

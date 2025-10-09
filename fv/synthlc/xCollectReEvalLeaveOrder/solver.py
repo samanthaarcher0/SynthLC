@@ -151,4 +151,4 @@ class MySolver:
         print(r)
         # pythonic sat
         assert(r == sat)
-
+        return r

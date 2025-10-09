@@ -258,7 +258,7 @@ def pp():
     first_pls = get_array("first_covered.txt")
     comb_obj = GenComb(first_pls)
     comb_obj.gen()
-    src = "issue"
+    src = "inst_begin_ld0"
     for dest_set in comb_obj.res:
         if len(dest_set) == 0:
             continue

@@ -124,6 +124,27 @@ def df_query(df, prop, cover_prop=True, exact_name=False):
         return (res, bnd, time)
     return (None, None, None)
 
+def df_query_return_on_no_exist(df, prop, cover_prop=True, exact_name=False):
+    if cover_prop:
+        if not ":" in prop and (not exact_name):
+        #if not ":" in prop:
+            prop = "." + prop
+        tar_row = df[df['Name'].str.endswith(prop)]
+        if (len(tar_row) != 1):
+            print("tar row is size ", len(tar_row), "??", prop)
+            return (None, None, None)
+        res = tar_row['Result'].values[0] 
+        bnd = tar_row['Bound'].values[0]
+        sr = re.search("([0-9]+)", bnd)
+        if sr is not None:
+            bnd = int(sr.group(1))
+        else:
+            bnd = None
+        time = float(tar_row['Time'].values[0][:-2])
+        return (res, bnd, time)
+    return (None, None, None)
+
+
 def get_result(ff, prop):
     if not os.path.exists(ff):
         return ("ERR", float('inf'), 0)
