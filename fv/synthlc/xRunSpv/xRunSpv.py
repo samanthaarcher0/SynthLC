@@ -79,9 +79,7 @@ print(tainted_signals)
 
 JOB="spv_rtl2mupath_" + taint
 
-not_throughs = "-not_through { u_ld.u_agu.is_ls_dep_d3_resw_ls0_i1 u_ld.u_agu.is_ls_dep_d3_resx_ls0_i1  u_ld.u_agu.is_ls_dep_d3_resy_ls0_i1 u_ld.u_agu.is_ls_dep_d3_resz_ls0_i1 u_ld.u_agu.ls_is_res0_data_d4  u_ld.u_agu.ls_is_res1_data_d4  u_ld.u_agu.ls_is_res2_data_d4  u_ld.u_agu.ls_is_res3_data_d4  u_ld.u_agu.ls_is_resw_data_d4 u_ld.u_agu.ls_is_resx_data_d4 u_ld.u_agu.ls_is_resy_data_d4 u_ld.u_agu.ls_is_resz_data_d4 u_st.u_mb.u_atomic_alu.atomic_write_to_dc}"
-
-remove_stopats = "stopat -remove {ls_is_res*}\n"
+not_throughs = "-not_through {}"
 
 def gen():
     global htcl_
