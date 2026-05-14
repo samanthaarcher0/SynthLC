@@ -14,8 +14,8 @@ from HB_template import *
 HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 
 
 HEADERTCL='../header.tcl'
@@ -28,7 +28,7 @@ with open(HEADERTCL, "r") as f:
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 
 edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
-reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True)
+reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True, exit_on_fail=False)
 
 print("edges: ", len(edge))
 print("reachable_sets: ", len(reachable_sets))
@@ -45,18 +45,17 @@ A_CONCUR_B_t_tcl = '''cover -name cvr_rtl2mupath_{s1}_CONCUR_1_cyc_{s2} {{ {pref
 
 def gen():
     global htcl_
-    reachable_nodes = get_array("../xCoverAPerflocDiv/cover_individual.txt")
     tcl_out = f"{JOB}.tcl"
 
-    add_wait_comb = []
     for idx, e in enumerate(edge):
         in_aset = False
         e0 = e[0]
         e1 = e[1]
  
-        for aSet in reachable_sets:
-            if e0 in aSet and e1 in aSet and e0 != e1:
-                in_aset = True
+        #for aSet in reachable_sets:
+            #if e0 in aSet and e1 in aSet and e0 != e1:
+        if e0 in cv_perflocs and e1 in cv_perflocs and e0 != e1:
+           in_aset = True
         
         if in_aset: 
             htcl_ += A_HB_1_CYCLE_B_t_tcl.format(s1 = e0, s2 = e1, prefix=prefix)
@@ -69,8 +68,8 @@ def gen():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_*}]\n")
         f.write("prove -property $props\n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)
-        f.write("save %s.db -force\n" % JOB)
-        f.write("file copy %s.csv %s/.\n" % (JOB, os.getcwd()))
+        #f.write("save %s.db -force\n" % JOB)
+        f.write("file copy -force %s.csv %s/.\n" % (JOB, os.getcwd()))
         #f.write("exit\n")
     with open (f"{JOB}.sv", "w") as f:
         f.write(h_)
@@ -90,44 +89,45 @@ def pp():
 
     covered_all = []
 
-    for idx, itm in enumerate(edge):
-        
-        if not (itm[0] in reachable_nodes and itm[1] in reachable_nodes):
-            continue
-        
+    for idx, e in enumerate(edge):
         in_aset = False
-        for aSet in reachable_sets:
-            if itm[0] in aSet and itm[1] in aSet and itm[0] != itm[1]:
-                in_aset = True
+        e0 = e[0]
+        e1 = e[1]
+
+        #for aSet in reachable_sets:
+            #if e0 in aSet and e1 in aSet and e0 != e1:
+        if e0 in cv_perflocs and e1 in cv_perflocs and e0 != e1:
+           in_aset = True
+        
         if not in_aset:
             continue
         
         TMPLT="cvr_rtl2mupath_{s1}_HB_1_cyc_{s2}"
         TMPLT2="cvr_rtl2mupath_{s1}_CONCUR_1_cyc_{s2}"
-        r_, t_, b_ = get_result(f"{JOB}.csv", TMPLT.format(s1=itm[0], s2=itm[1])) #"ariane.HB_%d" % idx)
-        r2_, t2_, b2_ = get_result(f"{JOB}.csv", TMPLT2.format(s1=itm[0], s2=itm[1])) 
+        r_, t_, b_ = get_result(f"{JOB}.csv", TMPLT.format(s1=e0, s2=e1)) #"ariane.HB_%d" % idx)
+        r2_, t2_, b2_ = get_result(f"{JOB}.csv", TMPLT2.format(s1=e0, s2=e1)) 
         if r_ == "ERR":
-            print("FAIL HB %s" % itm)
+            print("FAIL HB %s" % e)
         if r_ == "covered":
-            covered_hb.append(itm)
+            covered_hb.append(e)
         elif r_ == "unreachable" or r_=="bounded_unreachable_user":
-            unreachable_hb.append(itm)
+            unreachable_hb.append(e)
         elif r_ == "undetermined":
-            undetermined_hb.append(itm)
-            print("undetermined HB: ", itm)
+            undetermined_hb.append(e)
+            print("undetermined HB: ", e)
 
         if r2_ == "ERR":
-            print("FAIL CONCUR %s" % itm)
+            print("FAIL CONCUR %s" % e)
         if r2_ == "covered":
-            covered_concur.append(itm)
+            covered_concur.append(e)
         elif r2_ == "unreachable" or r2_=="bounded_unreachable_user":
-            unreachable_concur.append(itm)
+            unreachable_concur.append(e)
         elif r2_ == "undetermined":
-            undetermined_concur.append(itm)
-            print("undetermined CONCUR: ", itm)
+            undetermined_concur.append(e)
+            print("undetermined CONCUR: ",e)
 
         if r_ == "covered" or r2_ == "covered":
-            covered_all.append(itm)
+            covered_all.append(e)
 
     with open("hb_covered.txt", "w") as f:
         for e in covered_hb:

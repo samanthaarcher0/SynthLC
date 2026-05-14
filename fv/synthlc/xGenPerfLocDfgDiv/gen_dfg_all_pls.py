@@ -10,12 +10,10 @@ sys.path.append("../src")
 from util import *
 from tcl_template import *
 HEADERFILE='../../header.sv'
-h_ = ""
-e_ = ""
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 PLFILE="../../xDUVPLs/perfloc_signals.txt"
 OUTDIR="out"
 
@@ -42,9 +40,12 @@ except FileNotFoundError:
 print(perfloc_signals)
 print(perfloc_iir_signals)
 
-with open("../../../user_provided_files/combined_pls.txt", "r") as f:
-    combined_pls = f.readlines()
-combined_pl_dict = get_combined_pls_dict(combined_pls)
+try:
+    with open("../../user_provided_files/combined_pls.txt", "r") as f:
+        combined_pls = f.readlines()
+    combined_pl_dict = get_combined_pls_dict(combined_pls)
+except FileNotFoundError:
+    combined_pl_dict = {}
 
 pl_to_combined_name = dict()
 for nm, pl_set in combined_pl_dict.items():
@@ -80,8 +81,9 @@ def gen():
                                 tcl_dfg_f.write(template % (s1, s2))
                                 pairs_sigs.append((s1, s2))
                                 
-        tcl_dfg_f.write("set f [file readlink jgproject/jg.log]\n") 
-        tcl_dfg_f.write("file copy -force jgproject/$f %s\n" % (os.getcwd() + "/get_dfg.tcl.log"))
+        tcl_dfg_f.write("set sessiondir [glob CSVNAME*jgsession*]\n")
+        tcl_dfg_f.write("set f [file readlink $sessiondir/jg.log]\n")
+        tcl_dfg_f.write("file copy -force $sessiondir/$f %s\n" % (os.getcwd() + "/get_dfg.tcl.log"))
         #tcl_dfg_f.write("exit\n")
 
     with open("seq_pairs.txt", "w") as f:

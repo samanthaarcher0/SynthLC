@@ -14,14 +14,14 @@ from util import *
 from HB_template import *
 
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
-reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True)
+reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True, exit_on_fail=False)
 
 interference = True
 HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 
 
 HEADERTCL='../header.tcl'
@@ -39,7 +39,7 @@ JOB3="rtl2mupath_pl_subset_combination_check"
 
 def gen():
 
-    template = '''cover -name cvr_rtl2mupath_{s}_revisit {{(@(posedge {prefix}fv_clk) ({prefix}{s} [*2] ##1 !{prefix}{s}))}}\n'''
+    template = '''cover -name cvr_rtl2mupath_{s}_revisit {{(@(posedge {prefix}clk_i) ({prefix}{s} [*2] ##1 !{prefix}{s}))}}\n'''
     tcl = ''
     for itm in cv_perflocs:
         tcl += (template.format(s=itm, prefix=prefix))
@@ -55,8 +55,8 @@ def gen():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_*_revisit}] \n")
         f.write("prove -property $props \n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB1)
-        f.write("save %s.db -force\n" % JOB1)
-        f.write("file copy %s.csv %s/.\n" % (JOB1, os.getcwd()))
+        #f.write("save %s.db -force\n" % JOB1)
+        f.write("file copy -force %s.csv %s/.\n" % (JOB1, os.getcwd()))
         #f.write("exit\n")
     return
 
@@ -168,7 +168,7 @@ def gen_s2():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_over1cyc_*}] \n")
         f.write("prove -property $props \n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB2)
-        f.write("save %s.db -force\n" % JOB2)
+        #f.write("save %s.db -force\n" % JOB2)
         f.write("file copy %s.csv %s/.\n" % (JOB2, os.getcwd()))
         #f.write("exit\n")
 
@@ -319,7 +319,7 @@ def gen_s3():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_recheck_subset_*}] \n")
         f.write("prove -property $props \n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB3)
-        f.write("save %s.db -force\n" % JOB3)
+        #f.write("save %s.db -force\n" % JOB3)
         f.write("file copy %s.csv %s/.\n" % (JOB3, os.getcwd()))
         #f.write("exit\n")
 
@@ -337,7 +337,6 @@ def pp():
     pl_cyc = {}
     for itm in max_cyc_perloc:
         pl_cyc[itm[0]] = int(itm[1])
-    reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True)
  
     result_over_1_covered = [] # (itm,cyc_that_covered,...)
     result_only_1_covered = []
@@ -499,9 +498,23 @@ def stats():
             f.write("%d," % itm[1])
         f.write("\n")
 
+def pp_repeat_only():
+    max_cyc_perloc = list()
+    for itm in cv_perflocs:
+        TMPLT="cvr_rtl2mupath_%s_revisit"
+        r_, tpt_, bnd_ = get_result(f"{JOB1}.csv", TMPLT % itm)
+        if r_ != "covered":
+            max_cyc_perloc.append((itm, 1))
+            continue
+        max_cyc_perloc.append((itm, 2))
+    with open("max_cycle_per_pl.txt", "w") as f:
+        for itm in max_cyc_perloc:
+            f.write("%s,%d\n" % (itm[0], itm[1]))
+    return
+
 
 if len(sys.argv) != 2:
-    print("gen/gen_s2/gen_S3/pp")
+    print("gen/gen_s2/gen_S3/pp/pp_repeat_only")
     exit(0)
 
 opt = sys.argv[1]
@@ -513,5 +526,7 @@ elif opt == "gen_s3":
     gen_s3()
 elif opt == "pp":
     pp()
+elif opt == "pp_repeat_only":
+    pp_repeat_only()
 elif opt == "stats":
     stats()

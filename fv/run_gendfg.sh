@@ -22,7 +22,8 @@ else
 
     # Run Jasper
     cd ${CWD}
-    ./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
+    #./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
+    ./RUN_JG.sh -j synthlc/xGenPerfLocDfgDiv -s ${SVFILE} -t ${TCLFILE} -g 1
 
     # Post process results 
     cd ${CWD}/${DIR}

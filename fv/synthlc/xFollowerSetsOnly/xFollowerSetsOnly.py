@@ -34,8 +34,9 @@ class GenComb:
 HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
+
 
 
 HEADERTCL='../header.tcl'
@@ -49,7 +50,7 @@ cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 
 #edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
 edge = get_array("../xCoverCandidateHBEdges/hb_covered.txt")
-reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True)
+reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True, exit_on_fail=False)
 
 print("edges: ", len(edge))
 print("cv_perflocs: ", len(cv_perflocs))
@@ -118,8 +119,8 @@ def gen():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_*}]\n")
         f.write("prove -property $props\n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB1)
-        f.write("save %s.db -force\n" % JOB1)
-        f.write("file copy %s.csv %s/.\n" % (JOB1, os.getcwd()))
+        #f.write("save %s.db -force\n" % JOB1)
+        f.write("file copy -force %s.csv %s/.\n" % (JOB1, os.getcwd()))
         #f.write("exit\n")
     with open (f"{JOB1}.sv", "w") as f:
         f.write(h_)
@@ -147,8 +148,8 @@ def gen_s2():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_*}]\n")
         f.write("prove -property $props\n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB2)
-        f.write("save %s.db -force\n" % JOB2)
-        f.write("file copy %s.csv %s/.\n" % (JOB2, os.getcwd()))
+        #f.write("save %s.db -force\n" % JOB2)
+        f.write("file copy -force %s.csv %s/.\n" % (JOB2, os.getcwd()))
         #f.write("exit\n")
     with open (f"{JOB2}.sv", "w") as f:
         f.write(h_)
@@ -203,8 +204,8 @@ def gen_s3():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_*}]\n")
         f.write("prove -property $props\n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB3)
-        f.write("save %s.db -force\n" % JOB3)
-        f.write("file copy %s.csv %s/.\n" % (JOB3, os.getcwd()))
+        #f.write("save %s.db -force\n" % JOB3)
+        f.write("file copy -force %s.csv %s/.\n" % (JOB3, os.getcwd()))
         #f.write("exit\n")
     with open (f"{JOB3}.sv", "w") as f:
         f.write(h_)
@@ -258,7 +259,7 @@ def pp():
     first_pls = get_array("first_covered.txt")
     comb_obj = GenComb(first_pls)
     comb_obj.gen()
-    src = "inst_begin_ld0"
+    src = "instn_begin"
     for dest_set in comb_obj.res:
         if len(dest_set) == 0:
             continue

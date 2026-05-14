@@ -1,0 +1,5 @@
+{
+  "CLK": "clk_i",
+  "prefix": "",
+  "RESET":"!rst_ni"
+}

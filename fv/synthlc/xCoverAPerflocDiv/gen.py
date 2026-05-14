@@ -12,16 +12,19 @@ HEADERFILE="../header.sv"
 OUTDIR="out"
 perflocs = get_perflocs(HEADERFILE)
 
-with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
-    combined_pls = f.readlines()
-combined_pl_dict = get_combined_pls_dict(combined_pls)
+try:
+    with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
+        combined_pls = f.readlines()
+    combined_pl_dict = get_combined_pls_dict(combined_pls)
+except FileNotFoundError:
+    combined_pl_dict = {}
 
 print("perflocs: ", perflocs)
 
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-t_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 
 
 HEADERTCL='../header.tcl'
@@ -42,13 +45,13 @@ def gen():
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_C*}]\n")
         f.write("prove -property $props\n")
         f.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)
-        f.write("save %s.db -force\n" % JOB)
+        #f.write("save %s.db -force\n" % JOB)
         f.write("file copy -force %s.csv %s\n" % (JOB, os.getcwd()))
     #    f.write("exit\n")
 
     with open(f"{JOB}.sv", "w") as f:
         f.write(h_)
-        f.write(t_)
+        f.write(e_)
 
 
 def stats():

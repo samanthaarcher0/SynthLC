@@ -75,8 +75,8 @@ case $key in
     shift
     ;;
     -t|--tcl)
-    #CUSTOMTCL="$2"
-    TCL="$2"
+    CUSTOMTCL="$2"
+    #TCL="$2"
     shift 
     shift
     ;;
@@ -207,10 +207,10 @@ CMDTASK="task -create mytask -copy_assumes $LISTS $CLISTS -regexp"
 #-copy_asserts -copy_covers " 
 
 
-if [ "$LISTS" == "" ] && [ "$CLISTS" == "" ] ; then
-    sed -i "s~#ASSUMPTION~set CA 1~" $TCLF
-    echo "CHECK ASSUMPTION!"
-fi
+#if [ "$LISTS" == "" ] && [ "$CLISTS" == "" ] ; then
+#    sed -i "s~#ASSUMPTION~set CA 1~" $TCLF
+#    echo "CHECK ASSUMPTION!"
+#fi
 
 DOCHECKASSUME=$(grep "RUN_CHECK_ASSUMPTION" $SVA)
 echo $DOCHECKASSUME
@@ -234,7 +234,7 @@ PROJ="${JOB}/${filename}_jgsession_$DATE"
 if [ "$gui" -eq "0" ]; then
     echo "[RUN_JG] no gui"
     echo "[RUN_JG] jg -no_gui -fpv $TCLF -proj $PROJ"
-    jg -no_gui -fpv $TCLF -proj $PROJ
+    /cad/cadence/jasper_2025.12/bin/jg -no_gui -fpv $TCLF -proj $PROJ
     RUNDIR="${JOB}/${filename}_rundir"
 
     if [ "$Q" -eq "1" ]; then
@@ -257,8 +257,8 @@ else
         echo "no x server"
         exit 1
     else 
-        #jg -fpv $TCLF  -proj $PROJ & 
-        jg -fpv $TCLF  -proj $PROJ & 
+        #/cad/cadence/jasper_2025.12/bin/jg -fpv $TCLF  -proj $PROJ & 
+        /cad/cadence/jasper_2025.12/bin/jg -fpv $TCLF  -proj $PROJ  
     fi 
 fi 
 

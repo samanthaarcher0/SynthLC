@@ -18,20 +18,23 @@ JOB = "perf_loc"
 
 inf = None
 try:
-    inf = open("../../user_provided_files/ls_annotation_pcr_ufsms_limited.txt")
+    inf = open("../../user_provided_files/annotation_pcr_ufsms.txt")
 except FileNotFoundError:
     print("File not found")
     sys.exit(1)
 
-with open("../../user_provided_files/combined_pls.txt", "r") as f:
-    combined_pls = f.readlines()
-combined_pl_dict = get_combined_pls_dict(combined_pls)
+try:
+    with open("../../user_provided_files/combined_pls.txt", "r") as f:
+        combined_pls = f.readlines()
+    combined_pl_dict = get_combined_pls_dict(combined_pls)
+except FileNotFoundError:
+    combined_pl_dict = {}
 
 pl_to_combined_name = dict()
 for nm, pl_set in combined_pl_dict.items():
     for pl in pl_set:
         pl_to_combined_name[pl] = nm
-print(pl_to_combined_name)
+#print(pl_to_combined_name)
 def get_width():
     pwd = os.getcwd()
     ff = "%s/sig_width.txt" % pwd
@@ -52,7 +55,7 @@ def get_width():
         else:
             ufsm_sig = line[:-1].split(",")[0]
             if "==" in ufsm_sig: 
-                print(ufsm_sig)
+                #print(ufsm_sig)
                 continue
             outf.write(CMD % (ufsm_sig, re.sub(r'([\[\]])', r'\\\1', ufsm_sig)))
 
@@ -74,7 +77,7 @@ def postproc_gen(nm, pcr, valid,  ufsms, ufsms_w, ufsms_f, ufsms_cond):
     pl_def = {}
     pl_sig = {}
     pl_seqs = []
-    for idx in range(0, total_cnt):
+    for idx in range(1, total_cnt):
         vals = []
         tmp_idx = idx
         for w, f in zip(ufsms_w[::-1], ufsms_f[::-1]):
@@ -86,14 +89,16 @@ def postproc_gen(nm, pcr, valid,  ufsms, ufsms_w, ufsms_f, ufsms_cond):
             vals = [vv] + vals
         pl_name = "%s_s%d" % (nm, idx)
         def_s = ("wire %s = \n" % pl_name)
-        def_s += ("\t(%s == uid0) && \n" % pcr)
-        def_s += ("\t(%s == 1'b1) && \n" % (valid))
+        def_s += ("\t(%s == pc0) && \n" % pcr)
+        if valid is not None:
+            def_s += ("\t(%s == 1'b1) && \n" % (valid))
         for ss, wid, vv in zip(ufsms, ufsms_w, vals):
             def_s += ("\t(%s == %d'd%d) && \n" % (ss, wid, vv))
         def_s += "\t 1'b1; \n"
         pl_seqs.append(pl_name)
         pl_def[pl_name] = def_s
-        composition_sig = [pcr, valid]
+        #composition_sig = [x for x in [pcr, valid] if x is not None]
+        composition_sig = [pcr]
         for itm in ufsms:
             if "==" in itm:
                 composition_sig += ufsms_cond[itm]
@@ -106,17 +111,14 @@ def postproc_gen(nm, pcr, valid,  ufsms, ufsms_w, ufsms_f, ufsms_cond):
 
 def postproc(nm, pcr, valid, ufsms, ufsms_w, ufsms_f, outf):
     total_cnt = 1
-    # half_cnt = 1
     for w, f in zip(ufsms_w, ufsms_f):
         if f is not None:
             total_cnt *= 1
-            # half_cnt *= 1
         else:
             total_cnt *= (2**w)
-            # half_cnt *= (2**(w-1))
     print("==>", total_cnt, nm)
     sigs = []
-    for idx in range(0, total_cnt):
+    for idx in range(1, total_cnt):
         vals = []
         tmp_idx = idx
         for w, f in zip(ufsms_w[::-1], ufsms_f[::-1]):
@@ -127,7 +129,8 @@ def postproc(nm, pcr, valid, ufsms, ufsms_w, ufsms_f, outf):
                 vv = f
             vals = [vv] + vals
         outf.write("wire %s_s%d = \n" % (nm, idx))
-        outf.write("\t(%s == 1'b1) && \n" % (valid))
+        if valid is not None:
+            outf.write("\t(%s == 1'b1) && \n" % (valid))
         sigs.append("%s_s%d" % (nm, idx))
 
         for ss, wid, vv in zip(ufsms, ufsms_w, vals):
@@ -164,9 +167,9 @@ def gen_duv_pl_checks():
             if (line[0] == "#" or len(line[:-1]) == 0) and nm is not None:
                 sigs = postproc(nm, pcr, valid, ufsms, ufsms_w, ufsms_f, out_sv)
                 chk_sigs += sigs
-                print((nm, pcr, valid, ufsms, ufsms_w, ufsms_f, out_sv))
-                print((nm, sigs))
-                print("--------------------------------")
+                #print((nm, pcr, valid, ufsms, ufsms_w, ufsms_f, out_sv))
+                #print((nm, sigs))
+                #print("--------------------------------")
             if line[0] == "#" or len(line[:-1]) == 0:
                 nm = None
                 pcr = None
@@ -179,8 +182,8 @@ def gen_duv_pl_checks():
                 nm = line[:-1]
             elif pcr is None:
                 pcr = line[:-1]
-            elif valid is None:
-                valid = line[:-1]
+            #elif valid is None:
+            #    valid = line[:-1]
             else:
                 arr = line[:-1].split(",")
                 ufsm_sig = arr[0]
@@ -205,9 +208,9 @@ def gen_duv_pl_checks():
             out_tcl.write("cover -name cvr_rtl2mupath_CHECK_%s {%s%s}\n" % (itm, prefix, itm))
         out_tcl.write("set props [get_property_list -include {name *rtl2mupath_CHECK*}]\n")
         out_tcl.write("prove -property $props\n")
-        out_tcl.write("report -property $props -csv -results -file %s.csv -force\n" % JOB)
+        out_tcl.write("report -property $props -csv -results -file %s.csv -force \n" % JOB)
         out_tcl.write("file copy -force %s.csv %s/.\n" % (JOB, os.getcwd()))
-        out_tcl.write("save %s.db -force\n" % JOB)
+        #out_tcl.write("save %s.db \n" % JOB)
         #out_tcl.write("exit\n")
 
 def clean():
@@ -229,10 +232,11 @@ def gen_header():
         df = pd.read_csv(FILE, dtype=mydtypes)
         for idx, row in df[df["Name"].str.contains("CHECK")].iterrows():
             if row['Result'] == "covered":
+                #reachable.append(row['Name'].split(".")[1][6:])
                 reachable.append(row['Name'].split(".")[-1][21:])
     else:
         assert(0)
-    #print(reachable)
+    print(reachable)
     pwd = os.getcwd()
     ff = "%s/sig_width.txt" % pwd
     sig_width_map = {}
@@ -281,8 +285,8 @@ def gen_header():
             nm = line[:-1]
         elif pcr is None:
             pcr = line[:-1]
-        elif valid is None:
-            valid = line[:-1]
+        #elif valid is None:
+        #    valid = line[:-1]
         else:
             arr = line[:-1].split(",")
             ufsm_sig = arr[0]

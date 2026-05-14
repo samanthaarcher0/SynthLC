@@ -14,8 +14,8 @@ from HB_template import *
 HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 
 
 HEADERTCL='../header.tcl'

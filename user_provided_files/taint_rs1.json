@@ -1,0 +1,6 @@
+{
+  "rs1": {
+    "sigs": "issue_stage_i.i_issue_read_operands.operand_a_q",
+    "valid": "issue_stage_i.i_issue_read_operands.pc_o == pc0"
+  } 
+}     

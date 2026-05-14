@@ -69,11 +69,13 @@ STEP 5 at $(pwd) $(date)
 # revisited 
 DIR=xPerfLocCycleCount
 PYSCRPT=xPerfLocCycleCountAllSet
-if [ -d "${DIR}" ]; then 
-    echo "Directory exists ${DIR} and skip"
-else 
+confirmed="y"
+if [ -d "${DIR}" ]; then
+    echo "Directory exists $INAME. Redo step? [y/n]"
+    read confirmed
+fi
+if [ $confirmed == "y" ]; then
     cp -r ../${DIR} .
-
     
     JOB1=rtl2mupath_pl_revisit_possible
     JOB2=rtl2mupath_pl_subset_revisit_possible
@@ -92,27 +94,28 @@ else
 
     # Run Jasper to determine which PLs can be repeated in any subset
     cd ../../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE1} ${SVFILE1}
-
+    #./run.sh ${FV_UNITDIR} ${TCLFILE1} ${SVFILE1}
+    ./RUN_JG.sh -j ${INAME_DIR}/${DIR} -s ${SVFILE1} -t ${TCLFILE1} -g 1
 
     # Generate properties to check for whether a PL can be repeated in a particular subset
-    cd ${INAME_DIR}/${DIR};
-    python3 ${PYSCRPT}.py gen_s2;
+    #cd ${INAME_DIR}/${DIR};
+    #python3 ${PYSCRPT}.py gen_s2;
      
     # Run Jasper to determine if a PL can be repeated within a particular subset
-    cd ../../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE2} ${SVFILE2}
+    #cd ../../..
+    #./run.sh ${FV_UNITDIR} ${TCLFILE2} ${SVFILE2}
 
 
     # Generate properties to check for whether combinations of PLs are revisited/not revisited in a subset
-    cd ${INAME_DIR}/${DIR};
-    python3 ${PYSCRPT}.py gen_s3;
+    #cd ${INAME_DIR}/${DIR};
+    #python3 ${PYSCRPT}.py gen_s3;
 
-    # Run Jasper to determine if a PL can be repeated within a particular subset
-    cd ../../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE3} ${SVFILE3}
+    # Run Jasper to determine if combinations of PLs can be repeated within a particular subset
+    #cd ../../..
+    #./run.sh ${FV_UNITDIR} ${TCLFILE3} ${SVFILE3}
 
 fi
 
 cd ${INAME_DIR}/${DIR};
-python3 ${PYSCRPT}.py pp; 
+#python3 ${PYSCRPT}.py pp; 
+python3 ${PYSCRPT}.py pp_repeat_only;

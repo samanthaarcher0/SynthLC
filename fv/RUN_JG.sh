@@ -19,7 +19,8 @@ DESIGNDIR=$(realpath ..)
 #FFILE=hdl.f
 FFILE=hdl.f.test
 CUSTOMTCL=
-gui=1
+gui=0
+SPV=0
 JOB=
 SVA=
 STCL=
@@ -63,6 +64,11 @@ case $key in
     -t|--tcl)
     CUSTOMTCL="$2"
     shift 
+    shift
+    ;;
+    --spv)
+    SPV="$2"
+    shift
     shift
     ;;
     --help)
@@ -154,6 +160,10 @@ if [ "$CUSTOMTCL" != "" ]; then
     sed -i "s~CSVNAME~${JOB}/${filename}~" $CUSTOMTCL
 fi
 
+if [ "$SPV" != 0 ]; then
+    sed -i "s~set SPV 0~set SPV 1~" $TCLF
+fi
+
 echo "[RUN_JG] TCLF is $TCLF"
 
 
@@ -167,10 +177,10 @@ CMDTASK="task -create mytask -copy_assumes $LISTS $CLISTS -regexp"
 #-copy_asserts -copy_covers " 
 
 
-if [ "$LISTS" == "" ] && [ "$CLISTS" == "" ] ; then
-    sed -i "s~#ASSUMPTION~set CA 1~" $TCLF
-    echo "CHECK ASSUMPTION!"
-fi
+#if [ "$LISTS" == "" ] && [ "$CLISTS" == "" ] ; then
+    #sed -i "s~#ASSUMPTION~set CA 1~" $TCLF
+    #echo "CHECK ASSUMPTION!"
+#fi
 
 DOCHECKASSUME=$(grep "RUN_CHECK_ASSUMPTION" $SVA)
 echo $DOCHECKASSUME
@@ -193,8 +203,8 @@ DATE=$(date +%y-%m-%d-%H_%M_%S)
 PROJ="${JOB}/${filename}_jgsession_$DATE"
 if [ "$gui" -eq "0" ]; then
     echo "[RUN_JG] no gui"
-    echo "[RUN_JG] jg -no_gui -fpv $TCLF -proj $PROJ"
-    jg -no_gui -fpv $TCLF -proj $PROJ
+    echo "[RUN_JG] /cad/cadence/jasper_2025.12/bin/jg -no_gui -fpv $TCLF -proj $PROJ -allow_unsupported_OS"
+    /cad/cadence/jasper_2025.12/bin/jg -no_gui -fpv $TCLF -proj $PROJ
     RUNDIR="${JOB}/${filename}_rundir"
 
     if [ ! -d $RUNDIR ]; then
@@ -207,14 +217,14 @@ if [ "$gui" -eq "0" ]; then
     mv $SETUPFILE $RUNDIR
 else
     echo "[RUN_JG] gui"
-    echo "[RUN_JG] jg -fpv $TCLF -proj $PROJ"
+    echo "[RUN_JG] /cad/cadence/jasper_2025.12/bin/jg -fpv $TCLF -proj $PROJ"
     sed -i "s~exit~#exit~" $TCLF
     if [ -z "$DISPLAY" ]; then
         echo "no x server"
         exit 1
     else 
         #jg -fpv $TCLF  -proj $PROJ & 
-        jg -fpv $TCLF  -proj $PROJ & 
+        /cad/cadence/jasper_2025.12/bin/jg -fpv $TCLF  -proj $PROJ -allow_unsupported_OS  
     fi 
 fi 
 

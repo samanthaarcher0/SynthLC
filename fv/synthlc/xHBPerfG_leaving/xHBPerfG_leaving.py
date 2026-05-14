@@ -13,8 +13,8 @@ from HB_template import *
 HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 
 
 HEADERTCL='../header.tcl'
@@ -27,9 +27,12 @@ cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 #edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
 edge = get_array("../xCoverCandidateHBEdges/covered_edges.txt")
 
-with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
-    combined_pls = f.readlines()
-combined_pl_dict = get_combined_pls_dict(combined_pls)
+try:
+    with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
+        combined_pls = f.readlines()
+    combined_pl_dict = get_combined_pls_dict(combined_pls)
+except FileNotFoundError:
+    combined_pl_dict = {}
 
 pl_signals = {}
 with open("../../../xDUVPLs/perfloc_signals.txt", "r") as f:

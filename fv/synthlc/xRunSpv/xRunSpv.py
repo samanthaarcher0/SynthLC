@@ -12,15 +12,18 @@ sys.path.append("../../src")
 from util import *
 from HB_template import *
 
-HEADERFILE='../header_spv.sv'
+#HEADERFILE='../header_spv.sv'
+HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
     lines = f.readlines()
-h_ = "".join(lines[:-5])
-e_ = "".join(lines[-5:])
+h_ = "".join(lines)
+e_ = ""
 
 
-HEADERTCL="../header_spv.tcl"
-htcl_ = "check_spv -init\n"
+#HEADERTCL="../header_spv.tcl"
+HEADERTCL="../header.tcl"
+htcl_ = ""
+#htcl_ = "check_spv -init\n"
 with open(HEADERTCL, "r") as f:
     for line in f:
         htcl_ += line
@@ -29,9 +32,12 @@ with open(HEADERTCL, "r") as f:
 cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 
 
-with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
-    combined_pls = f.readlines()
-combined_pl_dict = get_combined_pls_dict(combined_pls)
+try:
+    with open("../../../../user_provided_files/combined_pls.txt", "r") as f:
+        combined_pls = f.readlines()
+    combined_pl_dict = get_combined_pls_dict(combined_pls)
+except FileNotFoundError:
+    combined_pl_dict = {}
 pl_to_comb = dict()
 for comb, pl_list in combined_pl_dict.items():
     for pl in pl_list:
@@ -72,15 +78,15 @@ for comb_pl, pl_list in combined_pl_dict.items():
     pl_signals[comb_pl] = pl_signals[pl_list[0]]
 
 
-taint = "tainted_std_vec"
+taint = "taint_rs1"
 with open(f"../../../../user_provided_files/{taint}.json", "r") as f:
     tainted_signals = json.load(f)
 print(tainted_signals)
 
 JOB="spv_rtl2mupath_" + taint
 
-not_throughs = "-not_through {}"
-
+not_throughs = "-not_through {amo_resp.ack amo_resp.result fetch_entry_if_id.address fetch_entry_if_id.branch_predict.cf fetch_entry_if_id.branch_predict.predict_address fetch_entry_if_id.ex.cause fetch_entry_if_id.ex.tval fetch_entry_if_id.ex.valid tmp_icache_dreq_cache_if.data tmp_icache_dreq_cache_if.ex.cause tmp_icache_dreq_cache_if.ex.tval tmp_icache_dreq_cache_if.ex.valid tmp_icache_dreq_cache_if.ready tmp_icache_dreq_cache_if.vaddr tmp_icache_dreq_cache_if.valid tmp_icache_dreq_if_cache.kill_s1 tmp_icache_dreq_if_cache.kill_s2 tmp_icache_dreq_if_cache.req tmp_icache_dreq_if_cache.spec tmp_icache_dreq_if_cache.vaddr issue_stage_i.i_scoreboard.rs2_fwd_req issue_stage_i.i_scoreboard.rs1_fwd_req}"
+ 
 def gen():
     global htcl_
 
@@ -93,10 +99,10 @@ def gen():
 #'''
 
     TMPLT = '''
-check_spv -create -name {tnm}_src_{s}_dest_{d} -from {{{tsigs}}} -to {{{dest_sig}}} -to_precond {{$past({src})}} {options}
+check_spv -create -name {tnm}_src_{s}_dest_{d} -from {{{tsigs}}} -from_precond {{{tval}}} -to {{{dest_sig}}} -to_precond {{$past({src})}} {options}
 '''
 
-    htcl_ += remove_stopats
+    #htcl_ += remove_stopats
 
     all_tainted_signals = list()
     for op, defs in tainted_signals.items():
@@ -121,7 +127,7 @@ check_spv -create -name {tnm}_src_{s}_dest_{d} -from {{{tsigs}}} -to {{{dest_sig
 
     with open (f"{JOB}.tcl", "w") as f:
         f.write(htcl_)
-        f.write("\nset_message -warning ESPV338\n")
+        f.write("\n#set_message -warning ESPV338\n")
         f.write("#check_spv -prove -strategy proof\n")
         f.write("#report -property $props -csv -results -file %s.csv -force\n" % JOB)
         f.write("#save %s.db -force\n" % JOB)

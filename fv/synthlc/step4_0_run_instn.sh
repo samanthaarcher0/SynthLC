@@ -65,9 +65,12 @@ STEP 4 at $(pwd) $(date)
 
 DIR=xCoverCandidateHBEdges
 PYSCRPT=xCoverCandidateHBEdges
-if [ -d "${DIR}" ]; then 
-    echo "Directory exists ${DIR} and skip"
-#else 
+confirmed="y"
+if [ -d "${DIR}" ]; then
+    echo "Directory exists $INAME. Redo step? [y/n]"
+    read confirmed
+fi
+if [ $confirmed == "y" ]; then
     JOB="rtl2mupath_candidate_HB"
 
     SVFILE=$(realpath ${DIR})/${JOB}.sv
@@ -79,8 +82,8 @@ if [ -d "${DIR}" ]; then
 
     # Run Jasper to get HB property results
     cd ../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
-
+    #./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
+    ./RUN_JG.sh -j ${INAME_DIR}/${DIR} -s ${SVFILE} -t ${TCLFILE} -g 1
 fi
 
 

@@ -88,9 +88,12 @@ STEP 1 at $(pwd) $(date)
 
 DIR=xCoverAPerflocDiv
 PYSCRPT=gen
-if [ -d "${DIR}" ]; then 
-    echo "Directory exists ${DIR} and do only post-proc step"
-else 
+confirmed="y"
+if [ -d "${DIR}" ]; then
+    echo "Directory exists $INAME. Redo step? [y/n]"
+    read confirmed
+fi
+if [ $confirmed == "y" ]; then
     JOB="rtl2mupath_instn_reachable_perf_loc"
     SVFILE=$(realpath ${DIR})/${JOB}".sv"
     TCLFILE=$(realpath ${DIR})/${JOB}".tcl"
@@ -102,11 +105,11 @@ else
 
     # Run Jasper to get INSN reachable perf locs
     cd ../..
-    ./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
+    #./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
+    ./RUN_JG.sh -j ${INAME_DIR}/${DIR} -s ${SVFILE} -t ${TCLFILE} -g 1
 
     # Additional pruning that we are not doing here
     # cd ${INAME_DIR}/${DIR}; python3 ${PYSCRPT}.py gen_s2
-    
 fi
 
 # Post process results
