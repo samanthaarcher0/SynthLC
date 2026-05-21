@@ -1,4 +1,10 @@
 
+itself_assume_only_template = '''
+`define T_FROM_IUV
+OP_TAINT
+INSTN_CONSTRAINT
+'''
+
 sanity_template = '''
 INSTN_CONSTRAINT
 

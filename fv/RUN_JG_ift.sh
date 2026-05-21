@@ -75,8 +75,8 @@ case $key in
     shift
     ;;
     -t|--tcl)
-    CUSTOMTCL="$2"
-    #TCL="$2"
+    #CUSTOMTCL="$2"
+    TCL="$2"
     shift 
     shift
     ;;

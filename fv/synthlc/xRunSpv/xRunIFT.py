@@ -11,6 +11,9 @@ import sys
 sys.path.append("../../src")
 from util import *
 from HB_template import *
+sys.path.append("../../src_ift_utils")
+from IFT_template import *
+
 
 HEADERFILE='../header.sv'
 with open(HEADERFILE, "r") as f:
@@ -21,7 +24,7 @@ h_ = ""
 e_ = ""
 
 
-HEADERTCL="../header.tcl"
+HEADERTCL="../../../src_ift/jg2.tcl"
 htcl_ = ""
 with open(HEADERTCL, "r") as f:
     for line in f:
@@ -100,36 +103,79 @@ PROP_TMPLT = '''\
 cover -name {{{tnm}_src_{s}_dest_{d}}} {{@(posedge clk_i) {src} ##1 (|{{{t0_sigs}, 1\'b0}})}}
 '''
 
+PROP_TMPLT2 = '''\
+cover -name {{{tnm}_src_{s}_dest_{d}}} {{@(posedge clk_i) {src} ##1 ( {in_dest} && (|{{{t0_sigs}, 1\'b0}}))}}
+'''
+
 def gen():
     global htcl_
 
     for op, defs in tainted_signals.items():
-        tnm = taint + "_" + op
+        #tnm = taint + "_" + op
+        tnm = taint
 
+    all_dest_pls = set()
     for s, dest_set_list in decisions.items():
-        added_t0_sigs = list()
+        all_dest_pls = set()
+        for dest_set in dest_set_list:
+            for dest in dest_set:
+                all_dest_pls.add(dest)
+
         cnt = 0
         for dest_set in dest_set_list:
-            if len(dest_set) > 0:
-                for dest in dest_set:
+            added_t0_sigs = list()
+            in_dest = ""
+            if len(dest_set) == 0:
+                for dest in all_dest_pls:
                     # Use the individual CellIFT shadow signals that compose this
                     # PL's taint wire, so we don't need the wire to be in scope.
                     #for t0_sig in pl_t0_sigs.get(dest, [dest + "_t0"]):
-                    t0_sig = dest + "_t0"    
+                    t0_sig = prefix + dest + "_t0"
                     if t0_sig not in added_t0_sigs:
                         added_t0_sigs.append(t0_sig)
-        if added_t0_sigs:
-            htcl_ += PROP_TMPLT.format(
-                tnm=tnm,
-                s=s,
-                d=cnt,
-                src=prefix + s,
-                t0_sigs=", ".join(added_t0_sigs)
-            )
-        cnt += 1
+                    in_dest += f"!{prefix+dest} && "
+            else:
+                for dest in all_dest_pls:
+                    if dest in dest_set:
+                        in_dest += f"{prefix+dest} && "
+                        # Use the individual CellIFT shadow signals that compose this
+                        # PL's taint wire, so we don't need the wire to be in scope.
+                        #for t0_sig in pl_t0_sigs.get(dest, [dest + "_t0"]):
+                        t0_sig = prefix + dest + "_t0"    
+                        if t0_sig not in added_t0_sigs:
+                            added_t0_sigs.append(t0_sig)
+                    else:
+                        in_dest += f"!{prefix+dest} && "
+            
+            in_dest += "1'b1"
+            if added_t0_sigs:
+                htcl_ += PROP_TMPLT2.format(
+                    tnm=tnm,
+                    s=s,
+                    d=cnt,
+                    src=prefix + s,
+                    in_dest=in_dest,
+                    t0_sigs=", ".join(added_t0_sigs)
+                )
+            cnt += 1
+    
+    iii = ""
+    with open("../idef.sv", "r") as idef:
+        for line in idef:
+            iii += line
+   
+    DEFINEOPTAINT="`define BORTHRS"
+    outstring = itself_assume_only_template
+    rep_pairs = [
+        ("OP_TAINT", DEFINEOPTAINT),
+        ("INSTN_CONSTRAINT", iii),
+        ]
+    for tt in rep_pairs:
+        outstring = outstring.replace(tt[0], tt[1])
 
     with open (f"{JOB}.sv", "w") as f:
         f.write(h_)
+        f.write(outstring) 
         f.write(e_)
     with open (f"{JOB}.tcl", "w") as f:
         f.write(htcl_)

@@ -27,6 +27,8 @@ fileprefix="${filename%.*}"
 INAME="i_${fileprefix}_out" 
 echo "${fnm}"
 
+cp $INSTNDIR/$fnm "${INAME}/idef.sv"
+
 echo "Working on $INAME"
 
 INSTN="$INSTNDIR/$fnm"
@@ -86,7 +88,8 @@ if [ $confirmed == "y" ]; then
     cd ../..
     #./run.sh ${FV_UNITDIR} ${TCLFILE} ${SVFILE}
     #./RUN_JG.sh -j ${INAME_DIR}/${DIR} -s ${SVFILE} -t ${TCLFILE} -g 1 --spv 1
-    ./RUN_JG_ift.sh -j ${INAME_DIR}/${DIR} -t ${TCLFILE} -s ${SVFILE} -h src_ift/hdl.f -f src_ift/cellift_top_rewrite.sv -p src_ift/common_header.sv -t src_ift/jg.tcl
+#    ./RUN_JG_ift.sh -j {job} -s {filename} -h src_ift/hdl.f -f src_ift/cellift_top_rewrite.sv -p src_ift/common_header.sv -t src_ift/jg.tcl -g 1
+    ./RUN_JG_ift.sh -j ${INAME_DIR}/${DIR} -t ${TCLFILE} -s ${SVFILE} -h src_ift/hdl.f -f src_ift/cellift_top_rewrite.sv -p src_ift/common_header.sv -g 1
 fi
 
 
