@@ -12,23 +12,41 @@ from HB_template import *
 
 
 class GenComb:
-    def __init__(self, arr):
+    def __init__(self, arr, concurrent_pairs):
         self.arr = arr
         self.res = []
         self.acc = []
-    
+        # Build a set of frozensets for O(1) symmetric lookup.
+        # An element is always concurrent with itself.
+        self.concurrent = set()
+        for a, b in concurrent_pairs:
+            self.concurrent.add(frozenset((a, b)))
+
+    def is_concurrent(self, x, y):
+        if x == y:
+            return True
+        return frozenset((x, y)) in self.concurrent
+
+    def can_add(self, elem):
+        # elem may join the combination only if it is concurrent
+        # with every element already chosen.
+        return all(self.is_concurrent(elem, chosen) for chosen in self.acc)
+
     def gen(self):
         self.get_all_combination(0)
- 
+
     def get_all_combination(self, idx):
         if idx == len(self.arr):
             self.res.append(self.acc[:])
             return
+        # Branch 1: skip arr[idx]
         self.get_all_combination(idx + 1)
-        self.acc.append(self.arr[idx])
-        self.get_all_combination(idx + 1)
-        self.acc.pop()
-
+        # Branch 2: include arr[idx], but only if it stays concurrent
+        # with everything already in acc.
+        if self.can_add(self.arr[idx]):
+            self.acc.append(self.arr[idx])
+            self.get_all_combination(idx + 1)
+            self.acc.pop()
 
 
 HEADERFILE='../header.sv'
@@ -50,6 +68,7 @@ cv_perflocs = get_array("../xCoverAPerflocDiv/cover_individual.txt")
 
 #edge = get_array("../../xGenPerfLocDfgDiv/dfg_e.txt")
 edge = get_array("../xCoverCandidateHBEdges/hb_covered.txt")
+concur = get_array("../xCoverCandidateHBEdges/concur_covered.txt")
 reachable_sets = get_array("../xPerfLocSubsetDiv/reachable_set.txt", arr_as_ele = True, exit_on_fail=False)
 
 print("edges: ", len(edge))
@@ -93,7 +112,7 @@ def gen():
     for src, dest_set in followers.items():
         print(f"SRC: {src}")
         print(f"DEST SET: {dest_set}") 
-        comb_obj = GenComb(dest_set)
+        comb_obj = GenComb(dest_set, concur)
         comb_obj.gen()
         print(f"comb: {comb_obj.res}")
         fs = ""
@@ -174,7 +193,7 @@ def gen_s3():
             f.write(itm + "\n")
 
 
-    comb_obj = GenComb(first_pls)
+    comb_obj = GenComb(first_pls, concur)
     comb_obj.gen()
     print(f"comb: {comb_obj.res}")
 
@@ -234,7 +253,7 @@ def pp():
     undetermined = list()
     decisions = dict()
     for src, dest_set in followers.items():
-        comb_obj = GenComb(dest_set)
+        comb_obj = GenComb(dest_set, concur)
         comb_obj.gen()
         fs = ""
         for a_comb in comb_obj.res:
@@ -257,7 +276,7 @@ def pp():
 
     TMPLT = '''cvr_rtl2mupath_src_first_{pl_nms}'''
     first_pls = get_array("first_covered.txt")
-    comb_obj = GenComb(first_pls)
+    comb_obj = GenComb(first_pls, concur)
     comb_obj.gen()
     src = "instn_begin"
     for dest_set in comb_obj.res:

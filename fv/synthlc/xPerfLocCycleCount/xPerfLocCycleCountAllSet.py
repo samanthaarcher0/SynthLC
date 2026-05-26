@@ -39,7 +39,8 @@ JOB3="rtl2mupath_pl_subset_combination_check"
 
 def gen():
 
-    template = '''cover -name cvr_rtl2mupath_{s}_revisit {{(@(posedge {prefix}clk_i) ({prefix}{s} [*2] ##1 !{prefix}{s}))}}\n'''
+    #template = '''cover -name cvr_rtl2mupath_{s}_revisit {{(@(posedge {prefix}clk_i) ({prefix}{s} [*2] ##1 !{prefix}{s}))}}\n'''
+    template = '''cover -name cvr_rtl2mupath_{s}_revisit {{(@(posedge {prefix}clk_i) ({prefix}{s} ##1 {prefix}{s}))}}\n'''
     tcl = ''
     for itm in cv_perflocs:
         tcl += (template.format(s=itm, prefix=prefix))

@@ -41,7 +41,7 @@ for itm in cv_perflocs:
 JOB="rtl2mupath_candidate_HB"
 
 A_HB_1_CYCLE_B_t_tcl = '''cover -name cvr_rtl2mupath_{s1}_HB_1_cyc_{s2} {{ {prefix}{s1} ##1 {prefix}{s2} }}\n'''
-A_CONCUR_B_t_tcl = '''cover -name cvr_rtl2mupath_{s1}_CONCUR_1_cyc_{s2} {{ {prefix}{s1} && {prefix}{s2} }}\n'''
+A_CONCUR_B_t_tcl = '''cover -name cvr_rtl2mupath_{s1}_CONCUR_{s2} {{ {prefix}{s1} && {prefix}{s2} }}\n'''
 
 def gen():
     global htcl_
@@ -55,14 +55,21 @@ def gen():
         #for aSet in reachable_sets:
             #if e0 in aSet and e1 in aSet and e0 != e1:
         if e0 in cv_perflocs and e1 in cv_perflocs and e0 != e1:
+        #if e0 in cv_perflocs and e1 in cv_perflocs: 
            in_aset = True
         
         if in_aset: 
             htcl_ += A_HB_1_CYCLE_B_t_tcl.format(s1 = e0, s2 = e1, prefix=prefix)
-            htcl_ += A_CONCUR_B_t_tcl.format(s1 = e0, s2 = e1, prefix=prefix)
+            #htcl_ += A_CONCUR_B_t_tcl.format(s1 = e0, s2 = e1, prefix=prefix)
         else:
             print("not in reachable_sets: ", e)
-    
+   
+    for pl1 in cv_perflocs:
+        for pl2 in cv_perflocs:
+            if pl1 != pl2:
+                htcl_ += A_CONCUR_B_t_tcl.format(s1 = pl1, s2 = pl2, prefix=prefix)
+
+ 
     with open (tcl_out, "w") as f:
         f.write(htcl_)
         f.write("set props [get_property_list -include {name cvr_rtl2mupath_*}]\n")
@@ -103,7 +110,7 @@ def pp():
             continue
         
         TMPLT="cvr_rtl2mupath_{s1}_HB_1_cyc_{s2}"
-        TMPLT2="cvr_rtl2mupath_{s1}_CONCUR_1_cyc_{s2}"
+        TMPLT2="cvr_rtl2mupath_{s1}_CONCUR_{s2}"
         r_, t_, b_ = get_result(f"{JOB}.csv", TMPLT.format(s1=e0, s2=e1)) #"ariane.HB_%d" % idx)
         r2_, t2_, b2_ = get_result(f"{JOB}.csv", TMPLT2.format(s1=e0, s2=e1)) 
         if r_ == "ERR":
